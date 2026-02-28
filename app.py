@@ -1,7 +1,10 @@
-from flask import Flask, render_template
+from flask import Flask, render_template, request, redirect, url_for
 import random
+from inventario_db import Inventario
 
 app = Flask(__name__)
+
+mi_inventario = Inventario()
 
 @app.route('/')
 def home():
@@ -35,6 +38,46 @@ def clientes():
         {"nombre": "Ana Torres", "equipo": "MacBook Air", "estado": "Nuevo"}
     ]
     return render_template('clientes.html', clientes=lista_clientes)
+
+@app.route('/inventario')
+def inventario():
+    query = request.args.get('q')
+    
+    if query:
+        productos = mi_inventario.buscar_producto(query)
+    else:
+        productos = mi_inventario.mostrar_productos()
+        
+    return render_template('inventario.html', productos=productos)
+
+@app.route('/catalogo')
+def catalogo():
+    productos = mi_inventario.mostrar_productos()
+    return render_template('productos.html', productos=productos)
+
+@app.route('/agregar', methods=['POST'])
+def agregar():
+    nombre = request.form.get('nombre')
+    cantidad = int(request.form.get('cantidad'))
+    precio = float(request.form.get('precio'))
+    descripcion = request.form.get('descripcion')
+    imagen = request.form.get('imagen')
+    
+    mi_inventario.añadir_producto(nombre, cantidad, precio, descripcion, imagen)
+    return redirect(url_for('inventario'))
+
+@app.route('/eliminar/<int:id_prod>')
+def eliminar(id_prod):
+    mi_inventario.eliminar_producto(id_prod)
+    return redirect(url_for('inventario'))
+
+@app.route('/actualizar', methods=['POST'])
+def actualizar():
+    id_prod = int(request.form.get('id_prod'))
+    cantidad = int(request.form.get('cantidad'))
+    precio = float(request.form.get('precio'))
+    mi_inventario.actualizar_producto(id_prod, cantidad, precio)
+    return redirect(url_for('inventario'))
 
 if __name__ == '__main__':
     app.run(debug=True)
