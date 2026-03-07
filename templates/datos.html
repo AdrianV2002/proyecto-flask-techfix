@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block title %}Datos y Respaldos - TechFix{% endblock %}
+
+{% block content %}
+<h2 class="mb-4" style="color: var(--accent, #0d6efd);">
+    <i class="bi bi-server"></i> Datos Almacenados en el Sistema
+</h2>
+
+<div class="row">
+    <div class="col-md-6 mb-4">
+        <div class="card bg-dark text-light border-secondary h-100">
+            <div class="card-header border-secondary text-info">
+                <i class="bi bi-database-fill"></i> 1. Desde SQLite (BD)
+            </div>
+            <div class="card-body">
+                <ul class="list-group list-group-flush">
+                    {% for p in productos_db %}
+                        <li class="list-group-item bg-transparent text-light border-secondary">
+                            <strong>{{ p.id }}</strong>: {{ p.nombre }} - <span class="text-success">${{ p.precio }}</span> (Cant: {{ p.cantidad }})
+                        </li>
+                    {% else %}
+                        <li class="list-group-item bg-transparent text-muted border-0">No hay datos en SQLite.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6 mb-4">
+        <div class="card bg-dark text-light border-secondary h-100">
+            <div class="card-header border-secondary text-warning">
+                <i class="bi bi-filetype-json"></i> 2. Desde Archivo JSON
+            </div>
+            <div class="card-body">
+                <ul class="list-group list-group-flush">
+                    {% for item in datos_json %}
+                        <li class="list-group-item bg-transparent text-light border-secondary">
+                            {{ item.nombre }} - <span class="text-success">${{ item.precio }}</span> (Cant: {{ item.cantidad }})
+                        </li>
+                    {% else %}
+                        <li class="list-group-item bg-transparent text-muted border-0">Archivo JSON vacío o no encontrado.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6 mb-4">
+        <div class="card bg-dark text-light border-secondary h-100">
+            <div class="card-header border-secondary text-success">
+                <i class="bi bi-filetype-csv"></i> 3. Desde Archivo CSV
+            </div>
+            <div class="card-body">
+                <ul class="list-group list-group-flush">
+                    {% for fila in datos_csv %}
+                        <li class="list-group-item bg-transparent text-light border-secondary">
+                            {{ fila.nombre }} - <span class="text-success">${{ fila.precio }}</span> (Cant: {{ fila.cantidad }})
+                        </li>
+                    {% else %}
+                        <li class="list-group-item bg-transparent text-muted border-0">Archivo CSV vacío o no encontrado.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6 mb-4">
+        <div class="card bg-dark text-light border-secondary h-100">
+            <div class="card-header border-secondary text-light">
+                <i class="bi bi-filetype-txt"></i> 4. Desde Archivo TXT
+            </div>
+            <div class="card-body">
+                <pre class="text-light bg-secondary bg-opacity-25 p-3 rounded" style="white-space: pre-wrap; font-size: 0.9em;">{% if datos_txt %}{% for linea in datos_txt %}{{ linea }}{% endfor %}{% else %}Archivo TXT vacío o no encontrado.{% endif %}</pre>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

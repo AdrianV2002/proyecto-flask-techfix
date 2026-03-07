@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Añadir Nuevo Producto</h2>
+<form action="/guardar" method="POST">
+    <label for="nombre">Nombre del Producto:</label>
+    <input type="text" id="nombre" name="nombre" required><br><br>
+
+    <label for="precio">Precio:</label>
+    <input type="number" id="precio" name="precio" step="0.01" required><br><br>
+
+    <label for="cantidad">Cantidad en Stock:</label>
+    <input type="number" id="cantidad" name="cantidad" required><br><br>
+
+    <button type="submit">Guardar Producto</button>
+</form>
+{% endblock %}

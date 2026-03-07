@@ -1,16 +1,36 @@
 from flask import Flask, render_template, request, redirect, url_for
 import random
-from inventario_db import Inventario
+import os
+
+# Importaciones de nuestra nueva estructura modular
+from inventario.bd import db
+from inventario.productos import Producto
+# ¡Corregido! Una sola importación con los nombres correctos
+from inventario.inventario import sincronizar_respaldos, leer_archivos
 
 app = Flask(__name__)
 
-mi_inventario = Inventario()
+basedir = os.path.abspath(os.path.dirname(__file__))
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'techfix.db')
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# Inicializar la base de datos con la app
+db.init_app(app)
+
+# Crear las tablas automáticamente si no existen
+with app.app_context():
+    db.create_all()
+
+def actualizar_archivos_respaldo():
+    """Lee toda la base de datos y manda a actualizar los 3 archivos"""
+    todos_los_productos = Producto.query.all()
+    lista_dicts = [p.to_dict() for p in todos_los_productos]
+    sincronizar_respaldos(lista_dicts)
 
 @app.route('/')
 def home():
     equipos = ['PC-GAMER', 'LAPTOP', 'MACBOOK', 'IMPRESORA', 'CELULAR']
-    numero = random.randint(100, 999)
-    codigo_generado = f"{random.choice(equipos)}-{numero}"
+    codigo_generado = f"{random.choice(equipos)}-{random.randint(100, 999)}"
     return render_template('index.html', ticket_aleatorio=codigo_generado)
 
 @app.route('/ticket/<codigo>')
@@ -18,7 +38,7 @@ def consultar_ticket(codigo):
     return render_template('ticket.html', codigo=codigo)
 
 @app.route('/about')
-def about():
+def about(): 
     return render_template('about.html')
 
 @app.route('/servicios')
@@ -42,42 +62,68 @@ def clientes():
 @app.route('/inventario')
 def inventario():
     query = request.args.get('q')
-    
     if query:
-        productos = mi_inventario.buscar_producto(query)
+        # Búsqueda con SQLAlchemy
+        productos = Producto.query.filter(Producto.nombre.ilike(f'%{query}%')).all()
     else:
-        productos = mi_inventario.mostrar_productos()
-        
+        # Mostrar todo con SQLAlchemy
+        productos = Producto.query.all()
     return render_template('inventario.html', productos=productos)
 
 @app.route('/catalogo')
 def catalogo():
-    productos = mi_inventario.mostrar_productos()
+    productos = Producto.query.all()
     return render_template('productos.html', productos=productos)
 
 @app.route('/agregar', methods=['POST'])
 def agregar():
-    nombre = request.form.get('nombre')
-    cantidad = int(request.form.get('cantidad'))
-    precio = float(request.form.get('precio'))
-    descripcion = request.form.get('descripcion')
-    imagen = request.form.get('imagen')
+    nuevo_producto = Producto(
+        nombre=request.form.get('nombre'),
+        cantidad=int(request.form.get('cantidad')),
+        precio=float(request.form.get('precio')),
+        descripcion=request.form.get('descripcion'),
+        imagen=request.form.get('imagen')
+    )
+    db.session.add(nuevo_producto)
+    db.session.commit()
     
-    mi_inventario.añadir_producto(nombre, cantidad, precio, descripcion, imagen)
+    # ¡Sincronizamos archivos al agregar!
+    actualizar_archivos_respaldo()
     return redirect(url_for('inventario'))
 
 @app.route('/eliminar/<int:id_prod>')
 def eliminar(id_prod):
-    mi_inventario.eliminar_producto(id_prod)
+    producto = Producto.query.get_or_404(id_prod)
+    db.session.delete(producto)
+    db.session.commit()
+    
+    # ¡Sincronizamos archivos al eliminar!
+    actualizar_archivos_respaldo()
     return redirect(url_for('inventario'))
 
 @app.route('/actualizar', methods=['POST'])
 def actualizar():
     id_prod = int(request.form.get('id_prod'))
-    cantidad = int(request.form.get('cantidad'))
-    precio = float(request.form.get('precio'))
-    mi_inventario.actualizar_producto(id_prod, cantidad, precio)
+    producto = Producto.query.get_or_404(id_prod)
+    producto.cantidad = int(request.form.get('cantidad'))
+    producto.precio = float(request.form.get('precio'))
+    db.session.commit()
+    
+    # ¡Sincronizamos archivos al actualizar!
+    actualizar_archivos_respaldo()
     return redirect(url_for('inventario'))
+
+# --- RUTA DE RESPALDOS (SEMANA 12) ---
+@app.route('/datos')
+def datos():
+    data = leer_archivos()
+    productos_db = Producto.query.all()
+    # Enviamos los nombres exactos que espera nuestro datos.html
+    return render_template('datos.html', 
+                           productos_db=productos_db,
+                           datos_txt=data['txt'], 
+                           datos_json=data['json'], 
+                           datos_csv=data['csv'])
 
 if __name__ == '__main__':
     app.run(debug=True)
