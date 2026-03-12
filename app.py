@@ -2,11 +2,15 @@ from flask import Flask, render_template, request, redirect, url_for
 import random
 import os
 
-# Importaciones de nuestra nueva estructura modular
 from inventario.bd import db
 from inventario.productos import Producto
-# ¡Corregido! Una sola importación con los nombres correctos
 from inventario.inventario import sincronizar_respaldos, leer_archivos
+
+# ==========================================
+# IMPORTACIÓN NUEVA (SEMANA 13)
+# Conector a nuestra base de datos MySQL
+# ==========================================
+from Conexion.conexion import obtener_conexion, inicializar_base_datos
 
 app = Flask(__name__)
 
@@ -14,15 +18,15 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'techfix.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# Inicializar la base de datos con la app
 db.init_app(app)
 
-# Crear las tablas automáticamente si no existen
 with app.app_context():
     db.create_all()
 
+# Inicializamos las tablas de MySQL si no existen
+inicializar_base_datos()
+
 def actualizar_archivos_respaldo():
-    """Lee toda la base de datos y manda a actualizar los 3 archivos"""
     todos_los_productos = Producto.query.all()
     lista_dicts = [p.to_dict() for p in todos_los_productos]
     sincronizar_respaldos(lista_dicts)
@@ -50,23 +54,130 @@ def servicios():
     ]
     return render_template('servicios.html', servicios=lista_servicios)
 
+# ==========================================
+# RUTAS MYSQL - GESTIÓN DE USUARIOS
+# Operaciones: Leer, Insertar, Actualizar, Eliminar
+# ==========================================
+@app.route('/usuarios')
+def lista_usuarios():
+    conn = obtener_conexion()
+    if not conn:
+        return "Error: No hay conexión a MySQL. Revisa tu panel XAMPP/WAMP.", 500
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("SELECT * FROM usuarios")
+    usuarios_db = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return render_template('usuarios.html', usuarios=usuarios_db)
+
+@app.route('/agregar_usuario', methods=['POST'])
+def agregar_usuario():
+    nombre = request.form.get('nombre')
+    mail = request.form.get('mail')
+    password = request.form.get('password')
+    conn = obtener_conexion()
+    if conn:
+        cursor = conn.cursor()
+        sql = "INSERT INTO usuarios (nombre, mail, password) VALUES (%s, %s, %s)"
+        cursor.execute(sql, (nombre, mail, password))
+        conn.commit()
+        cursor.close()
+        conn.close()
+    return redirect(url_for('lista_usuarios'))
+
+@app.route('/actualizar_usuario', methods=['POST'])
+def actualizar_usuario():
+    id_usuario = int(request.form.get('id_usuario'))
+    nombre = request.form.get('nombre')
+    mail = request.form.get('mail')
+    password = request.form.get('password')
+    conn = obtener_conexion()
+    if conn:
+        cursor = conn.cursor()
+        sql = "UPDATE usuarios SET nombre = %s, mail = %s, password = %s WHERE id_usuario = %s"
+        cursor.execute(sql, (nombre, mail, password, id_usuario))
+        conn.commit()
+        cursor.close()
+        conn.close()
+    return redirect(url_for('lista_usuarios'))
+
+@app.route('/eliminar_usuario/<int:id_usuario>')
+def eliminar_usuario(id_usuario):
+    conn = obtener_conexion()
+    if conn:
+        cursor = conn.cursor()
+        sql = "DELETE FROM usuarios WHERE id_usuario = %s"
+        cursor.execute(sql, (id_usuario,))
+        conn.commit()
+        cursor.close()
+        conn.close()
+    return redirect(url_for('lista_usuarios'))
+
+# ==========================================
+# RUTAS MYSQL - GESTIÓN DE CLIENTES
+# Reemplaza la lista estática anterior por conexión a DB
+# ==========================================
 @app.route('/clientes')
 def clientes():
-    lista_clientes = [
-        {"nombre": "Empresa ABC", "equipo": "Servidor Dell", "estado": "VIP"},
-        {"nombre": "Carlos Mendoza", "equipo": "PC Gamer", "estado": "Regular"},
-        {"nombre": "Ana Torres", "equipo": "MacBook Air", "estado": "Nuevo"}
-    ]
-    return render_template('clientes.html', clientes=lista_clientes)
+    conn = obtener_conexion()
+    if not conn:
+        return "Error: No hay conexión a MySQL. Revisa tu panel XAMPP/WAMP.", 500
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("SELECT * FROM clientes")
+    clientes_db = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return render_template('clientes.html', clientes=clientes_db)
+
+@app.route('/agregar_cliente', methods=['POST'])
+def agregar_cliente():
+    nombre = request.form.get('nombre')
+    equipo = request.form.get('equipo')
+    estado = request.form.get('estado')
+    conn = obtener_conexion()
+    if conn:
+        cursor = conn.cursor()
+        sql = "INSERT INTO clientes (nombre, equipo, estado) VALUES (%s, %s, %s)"
+        cursor.execute(sql, (nombre, equipo, estado))
+        conn.commit()
+        cursor.close()
+        conn.close()
+    return redirect(url_for('clientes'))
+
+@app.route('/actualizar_cliente', methods=['POST'])
+def actualizar_cliente():
+    id_cliente = int(request.form.get('id_cliente'))
+    nombre = request.form.get('nombre')
+    equipo = request.form.get('equipo')
+    estado = request.form.get('estado')
+    conn = obtener_conexion()
+    if conn:
+        cursor = conn.cursor()
+        sql = "UPDATE clientes SET nombre = %s, equipo = %s, estado = %s WHERE id_cliente = %s"
+        cursor.execute(sql, (nombre, equipo, estado, id_cliente))
+        conn.commit()
+        cursor.close()
+        conn.close()
+    return redirect(url_for('clientes'))
+
+@app.route('/eliminar_cliente/<int:id_cliente>')
+def eliminar_cliente(id_cliente):
+    conn = obtener_conexion()
+    if conn:
+        cursor = conn.cursor()
+        sql = "DELETE FROM clientes WHERE id_cliente = %s"
+        cursor.execute(sql, (id_cliente,))
+        conn.commit()
+        cursor.close()
+        conn.close()
+    return redirect(url_for('clientes'))
 
 @app.route('/inventario')
 def inventario():
     query = request.args.get('q')
     if query:
-        # Búsqueda con SQLAlchemy
         productos = Producto.query.filter(Producto.nombre.ilike(f'%{query}%')).all()
     else:
-        # Mostrar todo con SQLAlchemy
         productos = Producto.query.all()
     return render_template('inventario.html', productos=productos)
 
@@ -86,8 +197,6 @@ def agregar():
     )
     db.session.add(nuevo_producto)
     db.session.commit()
-    
-    # ¡Sincronizamos archivos al agregar!
     actualizar_archivos_respaldo()
     return redirect(url_for('inventario'))
 
@@ -96,8 +205,6 @@ def eliminar(id_prod):
     producto = Producto.query.get_or_404(id_prod)
     db.session.delete(producto)
     db.session.commit()
-    
-    # ¡Sincronizamos archivos al eliminar!
     actualizar_archivos_respaldo()
     return redirect(url_for('inventario'))
 
@@ -108,17 +215,13 @@ def actualizar():
     producto.cantidad = int(request.form.get('cantidad'))
     producto.precio = float(request.form.get('precio'))
     db.session.commit()
-    
-    # ¡Sincronizamos archivos al actualizar!
     actualizar_archivos_respaldo()
     return redirect(url_for('inventario'))
 
-# --- RUTA DE RESPALDOS (SEMANA 12) ---
 @app.route('/datos')
 def datos():
     data = leer_archivos()
     productos_db = Producto.query.all()
-    # Enviamos los nombres exactos que espera nuestro datos.html
     return render_template('datos.html', 
                            productos_db=productos_db,
                            datos_txt=data['txt'], 

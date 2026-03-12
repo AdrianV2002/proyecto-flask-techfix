@@ -3,23 +3,90 @@
 {% block title %}Clientes - TechFix{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center mt-4">
+<div class="row mt-4">
+    <div class="col-md-4 mb-4">
+        <div class="panel">
+            <h4 class="panel-header" style="color: var(--accent, #0d6efd);">
+                <i class="bi bi-person-plus-fill"></i> Nuevo Cliente
+            </h4>
+            <form action="{{ url_for('agregar_cliente') }}" method="POST">
+                <div class="mb-3">
+                    <label class="form-label text-light small fw-bold">Nombre del Cliente</label>
+                    <input type="text" name="nombre" class="form-control" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label text-light small fw-bold">Equipo a Reparar</label>
+                    <input type="text" name="equipo" class="form-control" placeholder="Ej. PC Gamer, Laptop Dell..." required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label text-light small fw-bold">Estado</label>
+                    <select name="estado" class="form-control" required>
+                        <option value="Nuevo">Nuevo</option>
+                        <option value="Regular">Regular</option>
+                        <option value="VIP">VIP</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary w-100 mt-2 fw-bold">
+                    <i class="bi bi-person-check"></i> Registrar Cliente
+                </button>
+            </form>
+        </div>
+    </div>
+
     <div class="col-md-8">
         <div class="panel">
-            <h2 class="panel-header mb-4" style="color: var(--accent, #0d6efd);">
-                <i class="bi bi-people-fill"></i> Directorio de Clientes
-            </h2>
-            
-            <div class="row mt-4">
-                {% for cliente in clientes %}
-                <div class="col-md-6 mb-3">
-                    <div class="p-3 border rounded h-100" style="background: rgba(255,255,255,0.05); border-color: var(--border, #495057)!important;">
-                        <h5 class="text-light mb-1">{{ cliente.nombre }}</h5>
-                        <p class="text-muted small mb-2"><i class="bi bi-laptop"></i> {{ cliente.equipo }}</p>
-                        <span class="badge bg-primary rounded-pill">{{ cliente.estado }}</span>
-                    </div>
-                </div>
-                {% endfor %}
+            <h4 class="panel-header" style="color: var(--accent, #0d6efd);">
+                <i class="bi bi-people-fill"></i> Directorio de Clientes (MySQL)
+            </h4>
+            <div class="table-responsive mt-3">
+                <table class="table table-dark table-hover bg-transparent align-middle">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nombre</th>
+                            <th>Equipo</th>
+                            <th>Estado</th>
+                            <th class="text-center">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for c in clientes %}
+                        <tr>
+                            <td class="text-muted">{{ c.id_cliente }}</td>
+                            <form action="{{ url_for('actualizar_cliente') }}" method="POST">
+                                <input type="hidden" name="id_cliente" value="{{ c.id_cliente }}">
+                                <td>
+                                    <input type="text" name="nombre" value="{{ c.nombre }}" class="form-control form-control-sm">
+                                </td>
+                                <td>
+                                    <input type="text" name="equipo" value="{{ c.equipo }}" class="form-control form-control-sm">
+                                </td>
+                                <td>
+                                    <select name="estado" class="form-control form-control-sm">
+                                        <option value="Nuevo" {% if c.estado == 'Nuevo' %}selected{% endif %}>Nuevo</option>
+                                        <option value="Regular" {% if c.estado == 'Regular' %}selected{% endif %}>Regular</option>
+                                        <option value="VIP" {% if c.estado == 'VIP' %}selected{% endif %}>VIP</option>
+                                    </select>
+                                </td>
+                                <td class="text-center">
+                                    <div class="btn-group">
+                                        <button type="submit" class="btn btn-outline-info btn-sm" title="Actualizar">
+                                            <i class="bi bi-arrow-clockwise"></i>
+                                        </button>
+                                        <a href="{{ url_for('eliminar_cliente', id_cliente=c.id_cliente) }}" class="btn btn-outline-danger btn-sm" title="Eliminar">
+                                            <i class="bi bi-trash"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </form>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="5" class="text-center text-muted py-4">No hay clientes registrados en la base de datos MySQL.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>

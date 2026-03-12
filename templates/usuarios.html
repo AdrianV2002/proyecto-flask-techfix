@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block title %}Gestión de Usuarios - TechFix{% endblock %}
+
+{% block content %}
+<div class="row mt-4">
+    <div class="col-md-4 mb-4">
+        <div class="panel">
+            <h4 class="panel-header" style="color: var(--accent, #0d6efd);">
+                <i class="bi bi-person-plus"></i> Nuevo Usuario
+            </h4>
+            <form action="{{ url_for('agregar_usuario') }}" method="POST">
+                <div class="mb-3">
+                    <label class="form-label text-light small fw-bold">Nombre Completo</label>
+                    <input type="text" name="nombre" class="form-control" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label text-light small fw-bold">Correo Electrónico</label>
+                    <input type="email" name="mail" class="form-control" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label text-light small fw-bold">Contraseña</label>
+                    <input type="password" name="password" class="form-control" required>
+                </div>
+                <button type="submit" class="btn btn-info w-100 mt-2 text-dark fw-bold">
+                    <i class="bi bi-save"></i> Guardar Usuario
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div class="col-md-8">
+        <div class="panel">
+            <h4 class="panel-header" style="color: var(--accent, #0d6efd);">
+                <i class="bi bi-server"></i> Usuarios Registrados (MySQL)
+            </h4>
+            <div class="table-responsive mt-3">
+                <table class="table table-dark table-hover bg-transparent align-middle">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nombre</th>
+                            <th>Email</th>
+                            <th class="text-center">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for u in usuarios %}
+                        <tr>
+                            <td class="text-muted">{{ u.id_usuario }}</td>
+                            <form action="{{ url_for('actualizar_usuario') }}" method="POST">
+                                <input type="hidden" name="id_usuario" value="{{ u.id_usuario }}">
+                                <input type="hidden" name="password" value="{{ u.password }}">
+                                <td>
+                                    <input type="text" name="nombre" value="{{ u.nombre }}" class="form-control form-control-sm">
+                                </td>
+                                <td>
+                                    <input type="email" name="mail" value="{{ u.mail }}" class="form-control form-control-sm">
+                                </td>
+                                <td class="text-center">
+                                    <div class="btn-group">
+                                        <button type="submit" class="btn btn-outline-info btn-sm" title="Actualizar">
+                                            <i class="bi bi-arrow-clockwise"></i>
+                                        </button>
+                                        <a href="{{ url_for('eliminar_usuario', id_usuario=u.id_usuario) }}" class="btn btn-outline-danger btn-sm" title="Eliminar">
+                                            <i class="bi bi-trash"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </form>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="4" class="text-center text-muted py-4">No hay usuarios en la base de datos MySQL.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
