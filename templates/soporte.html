@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Crear Ticket - Sistema Web{% endblock %}
+{% block content %}
+<div class="row justify-content-center mt-4">
+    <div class="col-md-6 panel p-4 border rounded" style="background-color: #212529; border-color: #495057 !important;">
+        <h3 class="text-center text-success mb-4"><i class="bi bi-ticket-detailed"></i> Nuevo Ticket</h3>
+        <form action="{{ url_for('soporte') }}" method="POST">
+            <div class="mb-3">
+                <label class="form-label text-light fw-bold">Asunto / Equipo</label>
+                <input type="text" name="equipo" class="form-control" value="{{ servicio_pre if servicio_pre else '' }}" placeholder="Ej: Laptop Dell o Mantenimiento Preventivo" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label text-light fw-bold">Descripción del Requerimiento</label>
+                <textarea name="descripcion" class="form-control" rows="4" placeholder="Describe detalladamente lo que necesitas..." required></textarea>
+            </div>
+            <button type="submit" class="btn btn-success w-100 fw-bold">Generar Ticket</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

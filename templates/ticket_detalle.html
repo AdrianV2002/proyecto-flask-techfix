@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Ticket #{{ ticket.id_ticket }} - Sistema Web{% endblock %}
+{% block content %}
+<div class="row mt-4">
+    <div class="col-md-4 mb-4">
+        <div class="panel p-4 border rounded" style="background-color: #212529;">
+            <h5 class="text-info">Detalles del Ticket #{{ ticket.id_ticket }}</h5>
+            <hr class="border-secondary">
+            <p class="text-light mb-1"><strong>Cliente:</strong> {{ ticket.nombre }}</p>
+            <p class="text-light mb-1"><strong>Equipo/Servicio:</strong> {{ ticket.equipo }}</p>
+            <p class="text-light mb-1"><strong>Estado:</strong> 
+                <span class="badge {% if ticket.estado == 'Pendiente' %}bg-warning text-dark{% elif ticket.estado == 'En Proceso' %}bg-primary{% else %}bg-success{% endif %}">{{ ticket.estado }}</span>
+            </p>
+            <p class="text-muted small mt-3">{{ ticket.descripcion }}</p>
+            
+            {% if current_user.rol == 'admin' %}
+            <form action="{{ url_for('detalle_ticket', id_ticket=ticket.id_ticket) }}" method="POST" class="mt-4">
+                <label class="text-light small fw-bold">Cambiar Estado:</label>
+                <div class="d-flex gap-2 mt-1">
+                    <select name="estado" class="form-select form-select-sm">
+                        <option value="Pendiente" {% if ticket.estado == 'Pendiente' %}selected{% endif %}>Pendiente</option>
+                        <option value="En Proceso" {% if ticket.estado == 'En Proceso' %}selected{% endif %}>En Proceso</option>
+                        <option value="Resuelto" {% if ticket.estado == 'Resuelto' %}selected{% endif %}>Resuelto</option>
+                    </select>
+                    <button type="submit" class="btn btn-outline-info btn-sm">Actualizar</button>
+                </div>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="col-md-8">
+        <div class="panel p-4 border rounded" style="background-color: #212529; height: 500px; display: flex; flex-direction: column;">
+            <h5 class="text-success mb-3"><i class="bi bi-chat-dots"></i> Chat de Soporte</h5>
+            
+            <div class="flex-grow-1 overflow-auto mb-3 pe-2" style="border: 1px solid #495057; border-radius: 5px; padding: 10px; background-color: #1a1d20;">
+                {% for m in mensajes %}
+                <div class="mb-3 {% if m.id_usuario == current_user.id %}text-end{% endif %}">
+                    
+                    <div class="d-inline-block p-2 rounded text-white text-start {% if m.id_usuario == current_user.id %}bg-primary{% elif m.rol == 'admin' %}bg-success{% else %}bg-secondary{% endif %}" style="max-width: 80%;">
+                        <div class="small fw-bold mb-1">{{ m.nombre }} {% if m.rol == 'admin' %}<i class="bi bi-patch-check-fill text-warning"></i>{% endif %}</div>
+                        <div>{{ m.mensaje }}</div>
+                        <div class="text-white-50" style="font-size: 0.7rem; margin-top: 5px;">{{ m.fecha }}</div>
+                    </div>
+                    
+                </div>
+                {% else %}
+                <p class="text-center text-muted mt-4">Aún no hay mensajes en este ticket. ¡Escribe el primero!</p>
+                {% endfor %}
+            </div>
+            
+            <form action="{{ url_for('detalle_ticket', id_ticket=ticket.id_ticket) }}" method="POST" class="d-flex gap-2">
+                <input type="text" name="mensaje" class="form-control" placeholder="Escribe un mensaje..." required autocomplete="off">
+                <button type="submit" class="btn btn-primary"><i class="bi bi-send"></i></button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

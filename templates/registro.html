@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Registro - Sistema Web{% endblock %}
+{% block content %}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-5">
+        <div class="panel p-4 border rounded" style="background-color: #212529; border-color: #495057 !important;">
+            <h3 class="text-center text-info mb-4"><i class="bi bi-person-plus"></i> Crear Cuenta</h3>
+            <form action="{{ url_for('registro') }}" method="POST">
+                <div class="mb-3">
+                    <label class="form-label text-light">Nombre Completo</label>
+                    <input type="text" name="nombre" class="form-control" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label text-light">Correo Electrónico</label>
+                    <input type="email" name="mail" class="form-control" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label text-light">Contraseña</label>
+                    <input type="password" name="password" class="form-control" required>
+                </div>
+                <button type="submit" class="btn btn-info w-100 fw-bold">Registrarse</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

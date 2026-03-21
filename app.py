@@ -1,49 +1,116 @@
-from flask import Flask, render_template, request, redirect, url_for
-import random
+from flask import Flask, render_template, request, redirect, url_for, flash, abort
 import os
-
-from inventario.bd import db
-from inventario.productos import Producto
 from inventario.inventario import sincronizar_respaldos, leer_archivos
-
-# ==========================================
-# IMPORTACIÓN NUEVA (SEMANA 13)
-# Conector a nuestra base de datos MySQL
-# ==========================================
 from Conexion.conexion import obtener_conexion, inicializar_base_datos
+from flask_login import LoginManager, login_user, logout_user, login_required, current_user
+from werkzeug.security import generate_password_hash, check_password_hash
+from inventario.models import Usuario
 
 app = Flask(__name__)
+app.secret_key = 'clave_secreta_2026'
 
-basedir = os.path.abspath(os.path.dirname(__file__))
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'techfix.db')
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'
+login_manager.login_message = 'Inicia sesión para interactuar.'
 
-db.init_app(app)
-
-with app.app_context():
-    db.create_all()
-
-# Inicializamos las tablas de MySQL si no existen
 inicializar_base_datos()
 
+def crear_admin_por_defecto():
+    conn = obtener_conexion()
+    if conn:
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT * FROM usuarios WHERE mail = 'admin@admin.com'")
+        if not cursor.fetchone():
+            password_hash = generate_password_hash('admin')
+            sql = "INSERT INTO usuarios (nombre, mail, password, rol) VALUES ('Administrador', 'admin@admin.com', %s, 'admin')"
+            cursor.execute(sql, (password_hash,))
+            conn.commit()
+        cursor.close()
+        conn.close()
+
+crear_admin_por_defecto()
+
 def actualizar_archivos_respaldo():
-    todos_los_productos = Producto.query.all()
-    lista_dicts = [p.to_dict() for p in todos_los_productos]
-    sincronizar_respaldos(lista_dicts)
+    conn = obtener_conexion()
+    if conn:
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT * FROM productos")
+        productos = cursor.fetchall()
+        for p in productos:
+            p['precio'] = float(p['precio'])
+        sincronizar_respaldos(productos)
+        cursor.close()
+        conn.close()
+
+@login_manager.user_loader
+def load_user(user_id):
+    conn = obtener_conexion()
+    if conn:
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT * FROM usuarios WHERE id_usuario = %s", (user_id,))
+        data = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        if data:
+            return Usuario(data['id_usuario'], data['nombre'], data['mail'], data['password'], data['rol'])
+    return None
+
+@app.route('/registro', methods=['GET', 'POST'])
+def registro():
+    if request.method == 'POST':
+        nombre = request.form.get('nombre')
+        mail = request.form.get('mail')
+        password_hash = generate_password_hash(request.form.get('password'))
+        conn = obtener_conexion()
+        if conn:
+            cursor = conn.cursor()
+            cursor.execute("INSERT INTO usuarios (nombre, mail, password, rol) VALUES (%s, %s, %s, 'usuario')", (nombre, mail, password_hash))
+            conn.commit()
+            cursor.close()
+            conn.close()
+            return redirect(url_for('login'))
+    return render_template('registro.html')
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        mail = request.form.get('mail')
+        password = request.form.get('password')
+        conn = obtener_conexion()
+        if conn:
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute("SELECT * FROM usuarios WHERE mail = %s", (mail,))
+            data = cursor.fetchone()
+            cursor.close()
+            conn.close()
+            if data and check_password_hash(data['password'], password):
+                user = Usuario(data['id_usuario'], data['nombre'], data['mail'], data['password'], data['rol'])
+                login_user(user)
+                return redirect(url_for('home'))
+            else:
+                flash("Credenciales incorrectas", "danger")
+    return render_template('login.html')
+
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for('login'))
 
 @app.route('/')
 def home():
-    equipos = ['PC-GAMER', 'LAPTOP', 'MACBOOK', 'IMPRESORA', 'CELULAR']
-    codigo_generado = f"{random.choice(equipos)}-{random.randint(100, 999)}"
-    return render_template('index.html', ticket_aleatorio=codigo_generado)
+    return render_template('index.html')
 
-@app.route('/ticket/<codigo>')
-def consultar_ticket(codigo):
-    return render_template('ticket.html', codigo=codigo)
-
-@app.route('/about')
-def about(): 
-    return render_template('about.html')
+@app.route('/catalogo')
+def catalogo():
+    conn = obtener_conexion()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("SELECT * FROM productos")
+    productos = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return render_template('productos.html', productos=productos)
 
 @app.route('/servicios')
 def servicios():
@@ -54,179 +121,203 @@ def servicios():
     ]
     return render_template('servicios.html', servicios=lista_servicios)
 
-# ==========================================
-# RUTAS MYSQL - GESTIÓN DE USUARIOS
-# Operaciones: Leer, Insertar, Actualizar, Eliminar
-# ==========================================
-@app.route('/usuarios')
-def lista_usuarios():
+@app.route('/soporte', methods=['GET', 'POST'])
+@login_required
+def soporte():
+    servicio_pre = request.args.get('servicio', '')
+    if request.method == 'POST':
+        equipo = request.form.get('equipo')
+        descripcion = request.form.get('descripcion')
+        conn = obtener_conexion()
+        if conn:
+            cursor = conn.cursor()
+            cursor.execute("INSERT INTO tickets (id_usuario, equipo, descripcion, estado) VALUES (%s, %s, %s, 'Pendiente')", 
+                           (current_user.id, equipo, descripcion))
+            conn.commit()
+            cursor.close()
+            conn.close()
+            flash("Ticket generado con éxito.", "success")
+            return redirect(url_for('mis_tickets'))
+    return render_template('soporte.html', servicio_pre=servicio_pre)
+
+@app.route('/mis_tickets')
+@login_required
+def mis_tickets():
     conn = obtener_conexion()
-    if not conn:
-        return "Error: No hay conexión a MySQL. Revisa tu panel XAMPP/WAMP.", 500
+    if conn:
+        cursor = conn.cursor(dictionary=True)
+        if current_user.rol == 'admin':
+            cursor.execute("SELECT t.*, u.nombre, u.mail FROM tickets t JOIN usuarios u ON t.id_usuario = u.id_usuario ORDER BY t.fecha DESC")
+        else:
+            cursor.execute("SELECT * FROM tickets WHERE id_usuario = %s ORDER BY fecha DESC", (current_user.id,))
+        tickets = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        return render_template('tickets.html', tickets=tickets)
+    return abort(500)
+
+@app.route('/ticket/<int:id_ticket>', methods=['GET', 'POST'])
+@login_required
+def detalle_ticket(id_ticket):
+    conn = obtener_conexion()
+    if not conn: abort(500)
     cursor = conn.cursor(dictionary=True)
-    cursor.execute("SELECT * FROM usuarios")
+    
+    if request.method == 'POST':
+        mensaje = request.form.get('mensaje')
+        if mensaje:
+            cursor.execute("INSERT INTO mensajes_ticket (id_ticket, id_usuario, mensaje) VALUES (%s, %s, %s)", 
+                           (id_ticket, current_user.id, mensaje))
+            conn.commit()
+        
+        nuevo_estado = request.form.get('estado')
+        if nuevo_estado and current_user.rol == 'admin':
+            cursor.execute("UPDATE tickets SET estado = %s WHERE id_ticket = %s", (nuevo_estado, id_ticket))
+            conn.commit()
+        return redirect(url_for('detalle_ticket', id_ticket=id_ticket))
+
+    cursor.execute("SELECT t.*, u.nombre, u.mail FROM tickets t JOIN usuarios u ON t.id_usuario = u.id_usuario WHERE t.id_ticket = %s", (id_ticket,))
+    ticket = cursor.fetchone()
+    
+    if not ticket or (current_user.rol != 'admin' and ticket['id_usuario'] != current_user.id):
+        abort(403)
+        
+    cursor.execute("SELECT m.*, u.nombre, u.rol FROM mensajes_ticket m JOIN usuarios u ON m.id_usuario = u.id_usuario WHERE m.id_ticket = %s ORDER BY m.fecha ASC", (id_ticket,))
+    mensajes = cursor.fetchall()
+    
+    cursor.close()
+    conn.close()
+    return render_template('ticket_detalle.html', ticket=ticket, mensajes=mensajes)
+
+@app.route('/usuarios')
+@login_required
+def lista_usuarios():
+    if current_user.rol != 'admin': abort(403)
+    conn = obtener_conexion()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("""
+        SELECT u.*, (SELECT COUNT(*) FROM tickets t WHERE t.id_usuario = u.id_usuario) as total_tickets 
+        FROM usuarios u
+    """)
     usuarios_db = cursor.fetchall()
     cursor.close()
     conn.close()
     return render_template('usuarios.html', usuarios=usuarios_db)
 
-@app.route('/agregar_usuario', methods=['POST'])
-def agregar_usuario():
-    nombre = request.form.get('nombre')
-    mail = request.form.get('mail')
-    password = request.form.get('password')
+@app.route('/cambiar_rol', methods=['POST'])
+@login_required
+def cambiar_rol():
+    if current_user.rol != 'admin': abort(403)
+    id_usuario = request.form.get('id_usuario')
+    nuevo_rol = request.form.get('rol')
     conn = obtener_conexion()
     if conn:
         cursor = conn.cursor()
-        sql = "INSERT INTO usuarios (nombre, mail, password) VALUES (%s, %s, %s)"
-        cursor.execute(sql, (nombre, mail, password))
-        conn.commit()
-        cursor.close()
-        conn.close()
-    return redirect(url_for('lista_usuarios'))
-
-@app.route('/actualizar_usuario', methods=['POST'])
-def actualizar_usuario():
-    id_usuario = int(request.form.get('id_usuario'))
-    nombre = request.form.get('nombre')
-    mail = request.form.get('mail')
-    password = request.form.get('password')
-    conn = obtener_conexion()
-    if conn:
-        cursor = conn.cursor()
-        sql = "UPDATE usuarios SET nombre = %s, mail = %s, password = %s WHERE id_usuario = %s"
-        cursor.execute(sql, (nombre, mail, password, id_usuario))
+        cursor.execute("UPDATE usuarios SET rol = %s WHERE id_usuario = %s", (nuevo_rol, id_usuario))
         conn.commit()
         cursor.close()
         conn.close()
     return redirect(url_for('lista_usuarios'))
 
 @app.route('/eliminar_usuario/<int:id_usuario>')
+@login_required
 def eliminar_usuario(id_usuario):
+    if current_user.rol != 'admin': abort(403)
     conn = obtener_conexion()
     if conn:
         cursor = conn.cursor()
-        sql = "DELETE FROM usuarios WHERE id_usuario = %s"
-        cursor.execute(sql, (id_usuario,))
+        cursor.execute("DELETE FROM usuarios WHERE id_usuario = %s", (id_usuario,))
         conn.commit()
         cursor.close()
         conn.close()
     return redirect(url_for('lista_usuarios'))
 
-# ==========================================
-# RUTAS MYSQL - GESTIÓN DE CLIENTES
-# Reemplaza la lista estática anterior por conexión a DB
-# ==========================================
-@app.route('/clientes')
-def clientes():
+@app.route('/inventario')
+@login_required
+def inventario():
+    if current_user.rol != 'admin': abort(403)
+    query = request.args.get('q')
     conn = obtener_conexion()
-    if not conn:
-        return "Error: No hay conexión a MySQL. Revisa tu panel XAMPP/WAMP.", 500
     cursor = conn.cursor(dictionary=True)
-    cursor.execute("SELECT * FROM clientes")
-    clientes_db = cursor.fetchall()
+    if query:
+        cursor.execute("SELECT * FROM productos WHERE nombre LIKE %s", (f"%{query}%",))
+    else:
+        cursor.execute("SELECT * FROM productos")
+    productos = cursor.fetchall()
     cursor.close()
     conn.close()
-    return render_template('clientes.html', clientes=clientes_db)
-
-@app.route('/agregar_cliente', methods=['POST'])
-def agregar_cliente():
-    nombre = request.form.get('nombre')
-    equipo = request.form.get('equipo')
-    estado = request.form.get('estado')
-    conn = obtener_conexion()
-    if conn:
-        cursor = conn.cursor()
-        sql = "INSERT INTO clientes (nombre, equipo, estado) VALUES (%s, %s, %s)"
-        cursor.execute(sql, (nombre, equipo, estado))
-        conn.commit()
-        cursor.close()
-        conn.close()
-    return redirect(url_for('clientes'))
-
-@app.route('/actualizar_cliente', methods=['POST'])
-def actualizar_cliente():
-    id_cliente = int(request.form.get('id_cliente'))
-    nombre = request.form.get('nombre')
-    equipo = request.form.get('equipo')
-    estado = request.form.get('estado')
-    conn = obtener_conexion()
-    if conn:
-        cursor = conn.cursor()
-        sql = "UPDATE clientes SET nombre = %s, equipo = %s, estado = %s WHERE id_cliente = %s"
-        cursor.execute(sql, (nombre, equipo, estado, id_cliente))
-        conn.commit()
-        cursor.close()
-        conn.close()
-    return redirect(url_for('clientes'))
-
-@app.route('/eliminar_cliente/<int:id_cliente>')
-def eliminar_cliente(id_cliente):
-    conn = obtener_conexion()
-    if conn:
-        cursor = conn.cursor()
-        sql = "DELETE FROM clientes WHERE id_cliente = %s"
-        cursor.execute(sql, (id_cliente,))
-        conn.commit()
-        cursor.close()
-        conn.close()
-    return redirect(url_for('clientes'))
-
-@app.route('/inventario')
-def inventario():
-    query = request.args.get('q')
-    if query:
-        productos = Producto.query.filter(Producto.nombre.ilike(f'%{query}%')).all()
-    else:
-        productos = Producto.query.all()
     return render_template('inventario.html', productos=productos)
 
-@app.route('/catalogo')
-def catalogo():
-    productos = Producto.query.all()
-    return render_template('productos.html', productos=productos)
-
 @app.route('/agregar', methods=['POST'])
+@login_required
 def agregar():
-    nuevo_producto = Producto(
-        nombre=request.form.get('nombre'),
-        cantidad=int(request.form.get('cantidad')),
-        precio=float(request.form.get('precio')),
-        descripcion=request.form.get('descripcion'),
-        imagen=request.form.get('imagen')
-    )
-    db.session.add(nuevo_producto)
-    db.session.commit()
-    actualizar_archivos_respaldo()
-    return redirect(url_for('inventario'))
-
-@app.route('/eliminar/<int:id_prod>')
-def eliminar(id_prod):
-    producto = Producto.query.get_or_404(id_prod)
-    db.session.delete(producto)
-    db.session.commit()
-    actualizar_archivos_respaldo()
+    if current_user.rol != 'admin': abort(403)
+    nombre = request.form.get('nombre')
+    cantidad = int(request.form.get('cantidad'))
+    precio = float(request.form.get('precio'))
+    descripcion = request.form.get('descripcion')
+    imagen = request.form.get('imagen')
+    
+    conn = obtener_conexion()
+    if conn:
+        cursor = conn.cursor()
+        cursor.execute("INSERT INTO productos (nombre, cantidad, precio, descripcion, imagen) VALUES (%s, %s, %s, %s, %s)", 
+                       (nombre, cantidad, precio, descripcion, imagen))
+        conn.commit()
+        cursor.close()
+        conn.close()
+        actualizar_archivos_respaldo()
     return redirect(url_for('inventario'))
 
 @app.route('/actualizar', methods=['POST'])
+@login_required
 def actualizar():
+    if current_user.rol != 'admin': abort(403)
     id_prod = int(request.form.get('id_prod'))
-    producto = Producto.query.get_or_404(id_prod)
-    producto.cantidad = int(request.form.get('cantidad'))
-    producto.precio = float(request.form.get('precio'))
-    db.session.commit()
-    actualizar_archivos_respaldo()
+    cantidad = int(request.form.get('cantidad'))
+    precio = float(request.form.get('precio'))
+    
+    conn = obtener_conexion()
+    if conn:
+        cursor = conn.cursor()
+        cursor.execute("UPDATE productos SET cantidad = %s, precio = %s WHERE id = %s", (cantidad, precio, id_prod))
+        conn.commit()
+        cursor.close()
+        conn.close()
+        actualizar_archivos_respaldo()
+    return redirect(url_for('inventario'))
+
+@app.route('/eliminar/<int:id_prod>')
+@login_required
+def eliminar(id_prod):
+    if current_user.rol != 'admin': abort(403)
+    conn = obtener_conexion()
+    if conn:
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM productos WHERE id = %s", (id_prod,))
+        conn.commit()
+        cursor.close()
+        conn.close()
+        actualizar_archivos_respaldo()
     return redirect(url_for('inventario'))
 
 @app.route('/datos')
+@login_required
 def datos():
+    if current_user.rol != 'admin': abort(403)
+    conn = obtener_conexion()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("SELECT * FROM productos")
+    productos_db = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    
     data = leer_archivos()
-    productos_db = Producto.query.all()
-    return render_template('datos.html', 
-                           productos_db=productos_db,
-                           datos_txt=data['txt'], 
-                           datos_json=data['json'], 
-                           datos_csv=data['csv'])
+    return render_template('datos.html', productos_db=productos_db, datos_txt=data['txt'], datos_json=data['json'], datos_csv=data['csv'])
+
+@app.errorhandler(403)
+def acceso_denegado(error):
+    return render_template('403.html'), 403
 
 if __name__ == '__main__':
     app.run(debug=True)

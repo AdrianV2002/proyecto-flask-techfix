@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Tickets - Sistema Web{% endblock %}
+{% block content %}
+<div class="row mt-4">
+    <div class="col-md-12 panel">
+        <h4 class="text-success mb-4"><i class="bi bi-tags"></i> {% if current_user.rol == 'admin' %}Todos los Tickets{% else %}Mis Tickets{% endif %}</h4>
+        <div class="table-responsive">
+            <table class="table table-dark table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Fecha</th>
+                        {% if current_user.rol == 'admin' %}<th>Cliente</th>{% endif %}
+                        <th>Asunto</th>
+                        <th>Estado</th>
+                        <th class="text-center">Acción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for t in tickets %}
+                    <tr>
+                        <td class="text-muted">#{{ t.id_ticket }}</td>
+                        <td class="small">{{ t.fecha }}</td>
+                        {% if current_user.rol == 'admin' %}<td>{{ t.nombre }}</td>{% endif %}
+                        <td>{{ t.equipo }}</td>
+                        <td>
+                            <span class="badge {% if t.estado == 'Pendiente' %}bg-warning text-dark{% elif t.estado == 'En Proceso' %}bg-primary{% else %}bg-success{% endif %}">{{ t.estado }}</span>
+                        </td>
+                        <td class="text-center">
+                            <a href="{{ url_for('detalle_ticket', id_ticket=t.id_ticket) }}" class="btn btn-outline-info btn-sm"><i class="bi bi-chat-dots"></i> Abrir Chat</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

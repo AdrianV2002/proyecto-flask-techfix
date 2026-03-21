@@ -2,7 +2,6 @@ import mysql.connector
 from mysql.connector import Error
 
 def obtener_conexion():
-    """Establece y retorna la conexión a la base de datos MySQL"""
     try:
         conexion = mysql.connector.connect(
             host="163.227.179.114",
@@ -12,41 +11,58 @@ def obtener_conexion():
         )
         if conexion.is_connected():
             return conexion
-    except Error as e:
-        print(f"Error crítico al conectar a MySQL: {e}")
+    except Error:
         return None
 
 def inicializar_base_datos():
-    """Crea las tablas en MySQL automáticamente si no existen"""
     conn = obtener_conexion()
     if conn:
         try:
             cursor = conn.cursor()
-            
-            # 1. Crear tabla de usuarios
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS usuarios (
                     id_usuario INT AUTO_INCREMENT PRIMARY KEY,
                     nombre VARCHAR(100) NOT NULL,
                     mail VARCHAR(100) NOT NULL,
-                    password VARCHAR(255) NOT NULL
+                    password VARCHAR(255) NOT NULL,
+                    rol VARCHAR(20) DEFAULT 'usuario'
                 )
             """)
-            
-            # 2. Crear tabla de clientes
             cursor.execute("""
-                CREATE TABLE IF NOT EXISTS clientes (
-                    id_cliente INT AUTO_INCREMENT PRIMARY KEY,
-                    nombre VARCHAR(100) NOT NULL,
+                CREATE TABLE IF NOT EXISTS tickets (
+                    id_ticket INT AUTO_INCREMENT PRIMARY KEY,
+                    id_usuario INT NOT NULL,
                     equipo VARCHAR(100) NOT NULL,
-                    estado VARCHAR(50) NOT NULL
+                    descripcion TEXT NOT NULL,
+                    estado VARCHAR(20) DEFAULT 'Pendiente',
+                    fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (id_usuario) REFERENCES usuarios(id_usuario) ON DELETE CASCADE
                 )
             """)
-            
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS mensajes_ticket (
+                    id_mensaje INT AUTO_INCREMENT PRIMARY KEY,
+                    id_ticket INT NOT NULL,
+                    id_usuario INT NOT NULL,
+                    mensaje TEXT NOT NULL,
+                    fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (id_ticket) REFERENCES tickets(id_ticket) ON DELETE CASCADE,
+                    FOREIGN KEY (id_usuario) REFERENCES usuarios(id_usuario) ON DELETE CASCADE
+                )
+            """)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS productos (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    nombre VARCHAR(150) NOT NULL,
+                    cantidad INT NOT NULL,
+                    precio DECIMAL(10,2) NOT NULL,
+                    descripcion TEXT NOT NULL,
+                    imagen VARCHAR(255) NOT NULL
+                )
+            """)
             conn.commit()
             cursor.close()
-            print("Tablas de MySQL verificadas y listas para usar.")
-        except Error as e:
-            print(f"Error al crear las tablas: {e}")
+        except Error:
+            pass
         finally:
             conn.close()

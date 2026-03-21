@@ -1,10 +1,10 @@
 [
     {
-        "id": 2,
-        "nombre": "NetWork MinEcuador",
-        "descripcion": "12",
-        "imagen": "https://imgs.search.brave.com/zn0NN6Yj0W1V1bhJ4wsKKWZW1uYswsXgnoFl5s96sDU/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9zdGF0/aWMudmVjdGVlenku/Y29tL3N5c3RlbS9y/ZXNvdXJjZXMvdGh1/bWJuYWlscy8wMjEv/NjA4LzI0OS9zbWFs/bC9hc2lhbi13b21h/bi1nYW1lci1wbGF5/LWNvbXB1dGVyLXZp/ZGVvLWdhbWUtY29u/Y2VwdC1waG90by5q/cGc",
+        "id": 1,
+        "nombre": "MinEc",
         "cantidad": 1,
-        "precio": 2.0
+        "precio": 50.0,
+        "descripcion": "1",
+        "imagen": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSlT4asR85sj8rF4AnWOeQ3epaUE2K6ryCIQg&s"
     }
 ]
