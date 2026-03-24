@@ -1,19 +1,25 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, abort
+from flask import Flask, render_template, request, redirect, url_for, flash, abort, send_file
 import os
-from inventario.inventario import sincronizar_respaldos, leer_archivos
 from Conexion.conexion import obtener_conexion, inicializar_base_datos
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
-from inventario.models import Usuario
+
+from models.usuario import Usuario
+from services.producto_service import ProductoService
+from services.pdf_service import PDFService
+from forms.producto_form import ProductoForm
+from services.respaldo_service import RespaldoService
 
 app = Flask(__name__)
 app.secret_key = 'clave_secreta_2026'
+basedir = os.path.abspath(os.path.dirname(__file__))
 
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
 login_manager.login_message = 'Inicia sesión para interactuar.'
 
+# Inicializar MySQL
 inicializar_base_datos()
 
 def crear_admin_por_defecto():
@@ -23,7 +29,7 @@ def crear_admin_por_defecto():
         cursor.execute("SELECT * FROM usuarios WHERE mail = 'admin@admin.com'")
         if not cursor.fetchone():
             password_hash = generate_password_hash('admin')
-            sql = "INSERT INTO usuarios (nombre, mail, password, rol) VALUES ('Administrador', 'admin@admin.com', %s, 'admin')"
+            sql = "INSERT INTO usuarios (nombre, mail, password, rol) VALUES ('Administrador General', 'admin@admin.com', %s, 'admin')"
             cursor.execute(sql, (password_hash,))
             conn.commit()
         cursor.close()
@@ -39,7 +45,7 @@ def actualizar_archivos_respaldo():
         productos = cursor.fetchall()
         for p in productos:
             p['precio'] = float(p['precio'])
-        sincronizar_respaldos(productos)
+        RespaldoService.sincronizar_respaldos(productos)
         cursor.close()
         conn.close()
 
@@ -104,13 +110,7 @@ def home():
 
 @app.route('/catalogo')
 def catalogo():
-    conn = obtener_conexion()
-    cursor = conn.cursor(dictionary=True)
-    cursor.execute("SELECT * FROM productos")
-    productos = cursor.fetchall()
-    cursor.close()
-    conn.close()
-    return render_template('productos.html', productos=productos)
+    return render_template('productos.html', productos=ProductoService.obtener_todos())
 
 @app.route('/servicios')
 def servicios():
@@ -162,14 +162,12 @@ def detalle_ticket(id_ticket):
     conn = obtener_conexion()
     if not conn: abort(500)
     cursor = conn.cursor(dictionary=True)
-    
     if request.method == 'POST':
         mensaje = request.form.get('mensaje')
         if mensaje:
             cursor.execute("INSERT INTO mensajes_ticket (id_ticket, id_usuario, mensaje) VALUES (%s, %s, %s)", 
                            (id_ticket, current_user.id, mensaje))
             conn.commit()
-        
         nuevo_estado = request.form.get('estado')
         if nuevo_estado and current_user.rol == 'admin':
             cursor.execute("UPDATE tickets SET estado = %s WHERE id_ticket = %s", (nuevo_estado, id_ticket))
@@ -178,13 +176,11 @@ def detalle_ticket(id_ticket):
 
     cursor.execute("SELECT t.*, u.nombre, u.mail FROM tickets t JOIN usuarios u ON t.id_usuario = u.id_usuario WHERE t.id_ticket = %s", (id_ticket,))
     ticket = cursor.fetchone()
-    
     if not ticket or (current_user.rol != 'admin' and ticket['id_usuario'] != current_user.id):
         abort(403)
         
     cursor.execute("SELECT m.*, u.nombre, u.rol FROM mensajes_ticket m JOIN usuarios u ON m.id_usuario = u.id_usuario WHERE m.id_ticket = %s ORDER BY m.fecha ASC", (id_ticket,))
     mensajes = cursor.fetchall()
-    
     cursor.close()
     conn.close()
     return render_template('ticket_detalle.html', ticket=ticket, mensajes=mensajes)
@@ -195,10 +191,7 @@ def lista_usuarios():
     if current_user.rol != 'admin': abort(403)
     conn = obtener_conexion()
     cursor = conn.cursor(dictionary=True)
-    cursor.execute("""
-        SELECT u.*, (SELECT COUNT(*) FROM tickets t WHERE t.id_usuario = u.id_usuario) as total_tickets 
-        FROM usuarios u
-    """)
+    cursor.execute("SELECT u.*, (SELECT COUNT(*) FROM tickets t WHERE t.id_usuario = u.id_usuario) as total_tickets FROM usuarios u")
     usuarios_db = cursor.fetchall()
     cursor.close()
     conn.close()
@@ -208,12 +201,10 @@ def lista_usuarios():
 @login_required
 def cambiar_rol():
     if current_user.rol != 'admin': abort(403)
-    id_usuario = request.form.get('id_usuario')
-    nuevo_rol = request.form.get('rol')
     conn = obtener_conexion()
     if conn:
         cursor = conn.cursor()
-        cursor.execute("UPDATE usuarios SET rol = %s WHERE id_usuario = %s", (nuevo_rol, id_usuario))
+        cursor.execute("UPDATE usuarios SET rol = %s WHERE id_usuario = %s", (request.form.get('rol'), request.form.get('id_usuario')))
         conn.commit()
         cursor.close()
         conn.close()
@@ -236,84 +227,50 @@ def eliminar_usuario(id_usuario):
 @login_required
 def inventario():
     if current_user.rol != 'admin': abort(403)
-    query = request.args.get('q')
-    conn = obtener_conexion()
-    cursor = conn.cursor(dictionary=True)
-    if query:
-        cursor.execute("SELECT * FROM productos WHERE nombre LIKE %s", (f"%{query}%",))
-    else:
-        cursor.execute("SELECT * FROM productos")
-    productos = cursor.fetchall()
-    cursor.close()
-    conn.close()
+    productos = ProductoService.obtener_todos(request.args.get('q'))
     return render_template('inventario.html', productos=productos)
 
 @app.route('/agregar', methods=['POST'])
 @login_required
 def agregar():
     if current_user.rol != 'admin': abort(403)
-    nombre = request.form.get('nombre')
-    cantidad = int(request.form.get('cantidad'))
-    precio = float(request.form.get('precio'))
-    descripcion = request.form.get('descripcion')
-    imagen = request.form.get('imagen')
-    
-    conn = obtener_conexion()
-    if conn:
-        cursor = conn.cursor()
-        cursor.execute("INSERT INTO productos (nombre, cantidad, precio, descripcion, imagen) VALUES (%s, %s, %s, %s, %s)", 
-                       (nombre, cantidad, precio, descripcion, imagen))
-        conn.commit()
-        cursor.close()
-        conn.close()
-        actualizar_archivos_respaldo()
+    datos = ProductoForm.procesar_creacion(request.form)
+    ProductoService.crear(datos)
+    actualizar_archivos_respaldo()
     return redirect(url_for('inventario'))
 
 @app.route('/actualizar', methods=['POST'])
 @login_required
 def actualizar():
     if current_user.rol != 'admin': abort(403)
-    id_prod = int(request.form.get('id_prod'))
-    cantidad = int(request.form.get('cantidad'))
-    precio = float(request.form.get('precio'))
-    
-    conn = obtener_conexion()
-    if conn:
-        cursor = conn.cursor()
-        cursor.execute("UPDATE productos SET cantidad = %s, precio = %s WHERE id = %s", (cantidad, precio, id_prod))
-        conn.commit()
-        cursor.close()
-        conn.close()
-        actualizar_archivos_respaldo()
+    datos = ProductoForm.procesar_actualizacion(request.form)
+    ProductoService.actualizar(datos['id_prod'], datos)
+    actualizar_archivos_respaldo()
     return redirect(url_for('inventario'))
 
 @app.route('/eliminar/<int:id_prod>')
 @login_required
 def eliminar(id_prod):
     if current_user.rol != 'admin': abort(403)
-    conn = obtener_conexion()
-    if conn:
-        cursor = conn.cursor()
-        cursor.execute("DELETE FROM productos WHERE id = %s", (id_prod,))
-        conn.commit()
-        cursor.close()
-        conn.close()
-        actualizar_archivos_respaldo()
+    ProductoService.eliminar(id_prod)
+    actualizar_archivos_respaldo()
     return redirect(url_for('inventario'))
 
 @app.route('/datos')
 @login_required
 def datos():
     if current_user.rol != 'admin': abort(403)
-    conn = obtener_conexion()
-    cursor = conn.cursor(dictionary=True)
-    cursor.execute("SELECT * FROM productos")
-    productos_db = cursor.fetchall()
-    cursor.close()
-    conn.close()
-    
-    data = leer_archivos()
+    data = RespaldoService.leer_archivos()
+    productos_db = ProductoService.obtener_todos()
     return render_template('datos.html', productos_db=productos_db, datos_txt=data['txt'], datos_json=data['json'], datos_csv=data['csv'])
+
+@app.route('/reporte_inventario')
+@login_required
+def reporte_inventario():
+    if current_user.rol != 'admin': abort(403)
+    filepath = os.path.join(basedir, 'reporte_productos.pdf')
+    PDFService.generar_reporte_productos(filepath)
+    return send_file(filepath, as_attachment=True, download_name="Reporte_Inventario.pdf")
 
 @app.errorhandler(403)
 def acceso_denegado(error):
