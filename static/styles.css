@@ -1,77 +1,42 @@
-:root {
-    --bg-dark: #0a0e1a;
-    --glass: rgba(255, 255, 255, 0.05);
-    --border: rgba(255, 255, 255, 0.1);
-    --accent: #00d2ff;
-}
+/* Importamos una fuente más moderna de Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
 
 body {
-    background: radial-gradient(circle at top right, #1a2a4a, #0a0e1a);
-    color: #ffffff;
-    min-height: 100vh;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-family: 'Nunito', sans-serif;
+    background-color: #121212; /* Fondo oscuro pero no negro total */
 }
 
-.navbar {
-    background: rgba(10, 14, 26, 0.8) !important;
-    backdrop-filter: blur(10px);
-    border-bottom: 1px solid var(--border);
+/* Mi paleta de colores personalizada para el proyecto (Azul Celeste) */
+:root {
+    --color-marca: #00d2ff; /* Azul celeste brillante */
+    --color-hover: #00a8cc; /* Azul un poco más oscuro al pasar el mouse */
 }
 
+/* Quitar el borde por defecto de las tarjetas y darles estilo */
 .panel {
-    background: var(--glass);
-    backdrop-filter: blur(15px);
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    padding: 30px;
-    box-shadow: 0 10px 30px rgba(0, 210, 255, 0.15);
+    background-color: #1e1e1e !important;
+    border: 1px solid #333 !important;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+    transition: transform 0.2s; /* Animación suave */
 }
 
-.panel-header {
-    border-bottom: 1px solid var(--border);
-    padding-bottom: 15px;
-    margin-bottom: 20px;
+.panel:hover {
+    transform: translateY(-5px); /* Efecto al pasar el mouse */
+}
+
+/* Botones personalizados */
+.btn-marca {
+    background-color: var(--color-marca);
+    color: #121212; /* Texto oscuro para que contraste con el azul celeste */
+    border: none;
     font-weight: bold;
 }
 
-.btn-custom {
-    background: linear-gradient(45deg, #00d2ff, #3a7bd5);
-    border: none;
-    color: white;
-    padding: 10px 25px;
-    border-radius: 50px;
-    transition: 0.3s;
-    font-weight: 600;
-    text-decoration: none;
-    display: inline-block;
+.btn-marca:hover {
+    background-color: var(--color-hover);
+    color: #121212;
 }
 
-.btn-custom:hover {
-    transform: scale(1.05);
-    box-shadow: 0 0 20px rgba(0, 210, 255, 0.4);
-    color: white;
-}
-
-.footer-custom {
-    border-top: 1px solid var(--border);
-    background: rgba(0,0,0,0.3);
-    color: #aaa;
-}
-
-
-.text-muted {
-    color: #a0aec0 !important; 
-}
-
-p, .lead {
-    color: #e2e8f0 !important; 
-}
-
-.navbar-dark .navbar-nav .nav-link {
-    color: rgba(255, 255, 255, 0.85);
-    font-weight: 500;
-}
-
-.navbar-dark .navbar-nav .nav-link:hover {
-    color: var(--accent);
+.tabla-custom th {
+    color: var(--color-marca) !important;
 }

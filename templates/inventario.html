@@ -1,84 +1,115 @@
 {% extends "base.html" %}
-{% block title %}Inventario - Sistema Web{% endblock %}
+
+{% block title %}Inventario - TechFix{% endblock %}
+
 {% block content %}
 <div class="row mt-4">
-    {% if current_user.rol == 'admin' %}
     <div class="col-md-4 mb-4">
-        <div class="panel">
-            <h4 class="panel-header" style="color: var(--accent);"><i class="bi bi-box-seam"></i> Nuevo Repuesto</h4>
+        <div class="panel p-4 rounded h-100" style="background-color: #1e1e1e; border: 1px solid #333;">
+            <h5 class="fw-bold border-bottom border-secondary pb-2 mb-3" style="color: var(--color-marca);">
+                <i class="bi bi-plus-circle"></i> Nuevo Repuesto
+            </h5>
             <form action="{{ url_for('agregar') }}" method="POST">
                 <div class="mb-3">
-                    <label class="form-label text-light small fw-bold">Nombre</label>
-                    <input type="text" name="nombre" class="form-control" required>
+                    <label class="form-label text-light" style="opacity: 0.9;">Nombre del Repuesto</label>
+                    <input type="text" name="nombre" class="form-control bg-dark text-light border-secondary" required>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label text-light small fw-bold">Descripción</label>
-                    <textarea name="descripcion" class="form-control" rows="2" required></textarea>
+                    <label class="form-label text-light" style="opacity: 0.9;">Cantidad (Stock)</label>
+                    <input type="number" name="cantidad" class="form-control bg-dark text-light border-secondary" required>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label text-light small fw-bold">URL Imagen</label>
-                    <input type="url" name="imagen" class="form-control" required>
+                    <label class="form-label text-light" style="opacity: 0.9;">Precio ($)</label>
+                    <input type="number" step="0.01" name="precio" class="form-control bg-dark text-light border-secondary" required>
                 </div>
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label text-light small fw-bold">Cantidad</label>
-                        <input type="number" name="cantidad" class="form-control" required min="1">
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label text-light small fw-bold">Precio</label>
-                        <input type="number" step="0.01" name="precio" class="form-control" required min="0.01">
-                    </div>
+                <div class="mb-3">
+                    <label class="form-label text-light" style="opacity: 0.9;">Descripción</label>
+                    <textarea name="descripcion" class="form-control bg-dark text-light border-secondary" rows="2" required></textarea>
                 </div>
-                <button type="submit" class="btn-custom w-100 mt-2"><i class="bi bi-plus-circle"></i> Agregar</button>
+                <div class="mb-3">
+                    <label class="form-label text-light" style="opacity: 0.9;">URL de la Imagen</label>
+                    <input type="text" name="imagen" class="form-control bg-dark text-light border-secondary" required>
+                </div>
+                <button type="submit" class="btn btn-marca w-100 fw-bold"><i class="bi bi-save"></i> Guardar Repuesto</button>
             </form>
         </div>
     </div>
-    {% endif %}
 
-    <div class="{% if current_user.rol == 'admin' %}col-md-8{% else %}col-md-12{% endif %}">
-        <div class="panel">
-            <h4 class="panel-header" style="color: var(--accent);"><i class="bi bi-database"></i> Registros</h4>
-            <form action="{{ url_for('inventario') }}" method="GET" class="d-flex mb-3">
-    <input type="text" name="q" class="form-control me-2 bg-dark text-light border-secondary" placeholder="Buscar producto...">
-    <button type="submit" class="btn btn-outline-info me-2"><i class="bi bi-search"></i> Buscar</button>
-    <a href="{{ url_for('reporte_inventario') }}" class="btn btn-danger text-nowrap">
-        <i class="bi bi-file-earmark-pdf-fill"></i> Descargar PDF
-    </a>
-</form>
+    <div class="col-md-8 mb-4">
+        <div class="panel p-4 rounded h-100" style="background-color: #1e1e1e; border: 1px solid #333;">
+            
+            <div class="d-flex justify-content-between align-items-center border-bottom border-secondary pb-2 mb-3 flex-wrap gap-2">
+                <h5 class="fw-bold mb-0" style="color: var(--color-marca);">
+                    <i class="bi bi-list-check"></i> Registros de Inventario
+                </h5>
+                
+                <form action="{{ url_for('inventario') }}" method="GET" class="d-flex">
+                    <input type="text" name="q" class="form-control form-control-sm bg-dark text-light border-secondary me-2" placeholder="Buscar repuesto...">
+                    <button type="submit" class="btn btn-outline-info btn-sm me-2"><i class="bi bi-search"></i></button>
+                    <a href="{{ url_for('reporte_inventario') }}" class="btn btn-danger btn-sm text-nowrap" title="Descargar PDF de Inventario">
+                        <i class="bi bi-file-earmark-pdf-fill"></i> PDF
+                    </a>
+                </form>
+            </div>
+
             <div class="table-responsive">
-                <table class="table table-dark table-hover bg-transparent align-middle">
+                <table class="table table-dark table-hover align-middle">
                     <thead>
                         <tr>
-                            <th>ID</th>
-                            <th>Producto</th>
-                            <th>Stock</th>
-                            <th>Precio</th>
-                            {% if current_user.rol == 'admin' %}
-                            <th class="text-center">Acciones</th>
-                            {% endif %}
+                            <th style="color: var(--color-marca);">ID</th>
+                            <th style="color: var(--color-marca);">Nombre</th>
+                            <th style="color: var(--color-marca);">Stock</th>
+                            <th style="color: var(--color-marca);">Precio</th>
+                            <th class="text-center" style="color: var(--color-marca);">Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for p in productos %}
                         <tr>
-                            <td class="text-muted">{{ p.id }}</td>
-                            <td class="text-light fw-bold">{{ p.nombre }}</td>
-                            {% if current_user.rol == 'admin' %}
-                            <form action="{{ url_for('actualizar') }}" method="POST">
-                                <input type="hidden" name="id_prod" value="{{ p.id }}">
-                                <td><input type="number" name="cantidad" value="{{ p.cantidad }}" class="form-control form-control-sm text-center" style="width: 70px;"></td>
-                                <td><input type="number" step="0.01" name="precio" value="{{ p.precio }}" class="form-control form-control-sm text-center" style="width: 80px;"></td>
-                                <td class="text-center">
-                                    <div class="btn-group">
-                                        <button type="submit" class="btn btn-outline-info btn-sm"><i class="bi bi-arrow-clockwise"></i></button>
-                                        <a href="{{ url_for('eliminar', id_prod=p.id) }}" class="btn btn-outline-danger btn-sm"><i class="bi bi-trash"></i></a>
+                            <td class="text-white-50">#{{ p.id }}</td>
+                            <td class="text-light">{{ p.nombre }}</td>
+                            <td>
+                                <span class="badge {% if p.cantidad > 5 %}bg-success{% else %}bg-danger{% endif %}">{{ p.cantidad }}</span>
+                            </td>
+                            <td class="text-success fw-bold">${{ p.precio }}</td>
+                            <td class="text-center">
+                                <button class="btn btn-outline-warning btn-sm" data-bs-toggle="modal" data-bs-target="#modalEditar{{ p.id }}"><i class="bi bi-pencil"></i></button>
+                                <a href="{{ url_for('eliminar', id_prod=p.id) }}" class="btn btn-outline-danger btn-sm" onclick="return confirm('¿Seguro que deseas eliminar el repuesto: {{ p.nombre }}?');"><i class="bi bi-trash"></i></a>
+                            </td>
+                        </tr>
+
+                        <div class="modal fade" id="modalEditar{{ p.id }}" tabindex="-1" aria-hidden="true">
+                            <div class="modal-dialog">
+                                <div class="modal-content" style="background-color: #1e1e1e; border: 1px solid #444;">
+                                    <div class="modal-header border-secondary">
+                                        <h5 class="modal-title fw-bold" style="color: var(--color-marca);">Editar Repuesto #{{ p.id }}</h5>
+                                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                                     </div>
-                                </td>
-                            </form>
-                            {% else %}
-                                <td>{{ p.cantidad }}</td>
-                                <td>${{ p.precio }}</td>
-                            {% endif %}
+                                    <form action="{{ url_for('actualizar') }}" method="POST">
+                                        <div class="modal-body">
+                                            <input type="hidden" name="id_prod" value="{{ p.id }}">
+                                            <p class="text-light mb-3">Actualizando: <strong class="text-info">{{ p.nombre }}</strong></p>
+                                            
+                                            <div class="mb-3">
+                                                <label class="form-label text-light" style="opacity: 0.9;">Nueva Cantidad</label>
+                                                <input type="number" name="cantidad" class="form-control bg-dark text-light border-secondary" value="{{ p.cantidad }}" required>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label text-light" style="opacity: 0.9;">Nuevo Precio ($)</label>
+                                                <input type="number" step="0.01" name="precio" class="form-control bg-dark text-light border-secondary" value="{{ p.precio }}" required>
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer border-secondary">
+                                            <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">Cancelar</button>
+                                            <button type="submit" class="btn btn-marca"><i class="bi bi-save"></i> Guardar Cambios</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        {% else %}
+                        <tr>
+                            <td colspan="5" class="text-center text-light py-5" style="opacity: 0.6;"><i class="bi bi-box" style="font-size: 2rem;"></i><br>No hay repuestos en el inventario.</td>
                         </tr>
                         {% endfor %}
                     </tbody>

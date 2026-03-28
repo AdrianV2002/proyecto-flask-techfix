@@ -1,25 +1,50 @@
 {% extends "base.html" %}
-{% block title %}Registro - Sistema Web{% endblock %}
+
+{% block title %}Registro - TechFix{% endblock %}
+
 {% block content %}
 <div class="row justify-content-center mt-5">
     <div class="col-md-5">
-        <div class="panel p-4 border rounded" style="background-color: #212529; border-color: #495057 !important;">
-            <h3 class="text-center text-info mb-4"><i class="bi bi-person-plus"></i> Crear Cuenta</h3>
+        <div class="panel p-5 rounded" style="background-color: #1e1e1e; border: 1px solid #333;">
+            <div class="text-center mb-4">
+                <i class="bi bi-person-plus" style="font-size: 3.5rem; color: var(--color-marca);"></i>
+                <h3 class="fw-bold text-light mt-2">Crear Cuenta</h3>
+                <p class="text-light" style="opacity: 0.7; font-size: 0.9rem;">Únete a TechFix para solicitar soporte</p>
+            </div>
+            
             <form action="{{ url_for('registro') }}" method="POST">
                 <div class="mb-3">
-                    <label class="form-label text-light">Nombre Completo</label>
-                    <input type="text" name="nombre" class="form-control" required>
+                    <label class="form-label text-light fw-bold" style="opacity: 0.9;">Nombre Completo</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-dark border-secondary text-light"><i class="bi bi-person"></i></span>
+                        <input type="text" name="nombre" class="form-control bg-dark text-light border-secondary" placeholder="Ej: Juan Pérez" required>
+                    </div>
                 </div>
+
                 <div class="mb-3">
-                    <label class="form-label text-light">Correo Electrónico</label>
-                    <input type="email" name="mail" class="form-control" required>
+                    <label class="form-label text-light fw-bold" style="opacity: 0.9;">Correo Electrónico</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-dark border-secondary text-light"><i class="bi bi-envelope"></i></span>
+                        <input type="email" name="mail" class="form-control bg-dark text-light border-secondary" placeholder="tu@correo.com" required>
+                    </div>
                 </div>
-                <div class="mb-3">
-                    <label class="form-label text-light">Contraseña</label>
-                    <input type="password" name="password" class="form-control" required>
+                
+                <div class="mb-4">
+                    <label class="form-label text-light fw-bold" style="opacity: 0.9;">Contraseña</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-dark border-secondary text-light"><i class="bi bi-lock"></i></span>
+                        <input type="password" name="password" class="form-control bg-dark text-light border-secondary" placeholder="Crea una contraseña segura" required>
+                    </div>
                 </div>
-                <button type="submit" class="btn btn-info w-100 fw-bold">Registrarse</button>
+                
+                <button type="submit" class="btn btn-marca w-100 py-2 fs-5 mb-3"><i class="bi bi-person-check"></i> Registrarme</button>
             </form>
+            
+            <div class="text-center mt-3 pt-3 border-top border-secondary">
+                <p class="text-light mb-0" style="opacity: 0.8;">
+                    ¿Ya tienes cuenta? <a href="{{ url_for('login') }}" class="fw-bold text-decoration-none" style="color: var(--color-marca);">Inicia sesión</a>
+                </p>
+            </div>
         </div>
     </div>
 </div>

@@ -3,41 +3,77 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Sistema Web{% endblock %}</title>
+    <title>{% block title %}TechFix{% endblock %}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark sticky-top" style="background-color: #212529;">
+    <nav class="navbar navbar-expand-lg navbar-dark sticky-top" style="background-color: #1a1a1a; border-bottom: 2px solid var(--color-marca);">
         <div class="container">
-            <a class="navbar-brand fw-bold" href="{{ url_for('home') }}"><i class="bi bi-cpu"></i> Sistema Web</a>
+            <a class="navbar-brand fw-bold" href="{{ url_for('home') }}" style="color: var(--color-marca); font-size: 1.5rem;">
+                <i class="bi bi-tools"></i> TechFix
+            </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
+                <ul class="navbar-nav ms-auto align-items-center">
                     <li class="nav-item"><a class="nav-link" href="{{ url_for('home') }}">Inicio</a></li>
-                    <li class="nav-item"><a class="nav-link" href="{{ url_for('catalogo') }}">Tienda</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('catalogo') }}">Repuestos</a></li>
                     <li class="nav-item"><a class="nav-link" href="{{ url_for('servicios') }}">Servicios</a></li>
                     
                     {% if current_user.is_authenticated %}
-                        <li class="nav-item"><a class="nav-link text-success" href="{{ url_for('mis_tickets') }}"><i class="bi bi-tags"></i> Tickets</a></li>
+                        <li class="nav-item"><a class="nav-link text-light" href="{{ url_for('mis_tickets') }}"><i class="bi bi-ticket-detailed"></i> Mis Casos</a></li>
+                        
                         {% if current_user.rol == 'admin' %}
-                            <li class="nav-item"><a class="nav-link" href="{{ url_for('inventario') }}">Inventario</a></li>
-                            <li class="nav-item"><a class="nav-link text-info" href="{{ url_for('lista_usuarios') }}"><i class="bi bi-people"></i> Usuarios</a></li>
-                            <li class="nav-item"><a class="nav-link text-warning" href="{{ url_for('datos') }}"><i class="bi bi-database"></i> Respaldos</a></li>
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle fw-bold" style="color: var(--color-marca);" href="#" role="button" data-bs-toggle="dropdown">
+                                    <i class="bi bi-shield-lock"></i> Admin
+                                </a>
+                                <ul class="dropdown-menu dropdown-menu-dark">
+                                    <li><a class="dropdown-item" href="{{ url_for('inventario') }}">Inventario</a></li>
+                                    <li><a class="dropdown-item" href="{{ url_for('lista_usuarios') }}">Usuarios</a></li>
+                                    <li><a class="dropdown-item" href="{{ url_for('datos') }}">Respaldos (Semana 12)</a></li>
+                                </ul>
+                            </li>
                         {% endif %}
-                        <li class="nav-item"><a class="nav-link text-danger fw-bold" href="{{ url_for('logout') }}"><i class="bi bi-box-arrow-right"></i> Salir</a></li>
+                        
+                        <li class="nav-item ms-lg-3 mt-2 mt-lg-0">
+                            <a class="btn btn-outline-danger btn-sm text-white px-3" href="{{ url_for('logout') }}">Salir</a>
+                        </li>
                     {% else %}
-                        <li class="nav-item"><a class="nav-link text-info fw-bold" href="{{ url_for('login') }}"><i class="bi bi-person-circle"></i> Entrar</a></li>
+                        <li class="nav-item ms-lg-3 mt-2 mt-lg-0">
+                            <a class="btn btn-marca btn-sm px-3" href="{{ url_for('login') }}">Entrar al Sistema</a>
+                        </li>
                     {% endif %}
                 </ul>
             </div>
         </div>
     </nav>
-    <main class="container mt-5 mb-5">
+
+    <main class="container mt-5 mb-5 min-vh-100">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
         {% block content %}{% endblock %}
     </main>
+
+    <footer class="py-4 mt-auto text-light" style="background-color: #121212; border-top: 1px solid #333;">
+        <div class="container text-center">
+            <p class="mb-1 small text-muted">Proyecto Universitario desarrollado por <strong>Adrián Villegas</strong> - 2026.</p>
+            <p class="mb-0" style="font-size: 0.75rem; color: #555;">Construido con Flask, MySQL y mucho café...</p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

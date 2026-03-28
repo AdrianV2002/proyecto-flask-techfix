@@ -268,9 +268,9 @@ def datos():
 @login_required
 def reporte_inventario():
     if current_user.rol != 'admin': abort(403)
-    filepath = os.path.join(basedir, 'reporte_productos.pdf')
-    PDFService.generar_reporte_productos(filepath)
-    return send_file(filepath, as_attachment=True, download_name="Reporte_Inventario.pdf")
+    filepath = os.path.join(basedir, 'Reporte_TechFix.pdf')
+    PDFService.generar_reporte_general(filepath)
+    return send_file(filepath, as_attachment=True, download_name="Reporte_General_TechFix.pdf")
 
 @app.errorhandler(403)
 def acceso_denegado(error):
