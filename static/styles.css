@@ -1,33 +1,38 @@
-/* Importamos una fuente más moderna de Google Fonts */
 @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
 
 body {
     font-family: 'Nunito', sans-serif;
-    background-color: #121212; /* Fondo oscuro pero no negro total */
+    background-color: #121212;
+    color: #e9ecef !important;
 }
 
-/* Mi paleta de colores personalizada para el proyecto (Azul Celeste) */
+h1, h2, h3, h4, h5, h6 {
+    color: #ffffff;
+}
+
+.text-muted {
+    color: #adb5bd !important;
+}
+
 :root {
-    --color-marca: #00d2ff; /* Azul celeste brillante */
-    --color-hover: #00a8cc; /* Azul un poco más oscuro al pasar el mouse */
+    --color-marca: #00d2ff;
+    --color-hover: #00a8cc;
 }
 
-/* Quitar el borde por defecto de las tarjetas y darles estilo */
 .panel {
     background-color: #1e1e1e !important;
     border: 1px solid #333 !important;
     box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-    transition: transform 0.2s; /* Animación suave */
+    transition: transform 0.2s;
 }
 
 .panel:hover {
-    transform: translateY(-5px); /* Efecto al pasar el mouse */
+    transform: translateY(-5px);
 }
 
-/* Botones personalizados */
 .btn-marca {
     background-color: var(--color-marca);
-    color: #121212; /* Texto oscuro para que contraste con el azul celeste */
+    color: #121212;
     border: none;
     font-weight: bold;
 }
