@@ -24,7 +24,16 @@
                     <li class="nav-item"><a class="nav-link" href="{{ url_for('servicios') }}">Servicios</a></li>
                     
                     {% if current_user.is_authenticated %}
-                        <li class="nav-item"><a class="nav-link text-light" href="{{ url_for('mis_tickets') }}"><i class="bi bi-ticket-detailed"></i> Mis Tickets</a></li>
+                        <li class="nav-item">
+                            <a class="nav-link text-light position-relative" href="{{ url_for('mis_tickets') }}">
+                                <i class="bi bi-ticket-detailed"></i> Casos
+                                {% if tickets_pendientes and tickets_pendientes > 0 %}
+                                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.6rem;">
+                                        {{ tickets_pendientes }}
+                                    </span>
+                                {% endif %}
+                            </a>
+                        </li>
                         
                         {% if current_user.rol == 'admin' %}
                             <li class="nav-item dropdown">
@@ -39,7 +48,10 @@
                             </li>
                         {% endif %}
                         
-                        <li class="nav-item ms-lg-3 mt-2 mt-lg-0">
+                        <li class="nav-item d-flex align-items-center ms-lg-4 mt-3 mt-lg-0 border-start border-secondary ps-lg-3">
+                            <span class="text-light me-3 fw-bold" style="color: var(--color-marca) !important;">
+                                <i class="bi bi-person-circle"></i> Hola, {{ current_user.nombre.split(' ')[0] }}
+                            </span>
                             <a class="btn btn-outline-danger btn-sm text-white px-3" href="{{ url_for('logout') }}">Salir</a>
                         </li>
                     {% else %}

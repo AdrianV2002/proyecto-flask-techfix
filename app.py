@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, abort, send_file
+from flask import Flask, render_template, request, redirect, url_for, flash, abort, send_file, jsonify
 import os
 from Conexion.conexion import obtener_conexion, inicializar_base_datos
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
@@ -47,6 +47,33 @@ def actualizar_archivos_respaldo():
         RespaldoService.sincronizar_respaldos(productos)
         cursor.close()
         conn.close()
+
+@app.context_processor
+def inject_pendientes():
+    pendientes = 0
+    if current_user.is_authenticated and current_user.rol == 'admin':
+        conn = obtener_conexion()
+        if conn:
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute("SELECT COUNT(*) as total FROM tickets WHERE estado = 'Pendiente'")
+            res = cursor.fetchone()
+            if res:
+                pendientes = res['total']
+            cursor.close()
+            conn.close()
+    return dict(tickets_pendientes=pendientes)
+
+@app.route('/api/mensajes/<int:id_ticket>')
+@login_required
+def api_mensajes(id_ticket):
+    conn = obtener_conexion()
+    if not conn: return jsonify([])
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("SELECT id_mensaje FROM mensajes_ticket WHERE id_ticket = %s", (id_ticket,))
+    mensajes = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return jsonify({"total": len(mensajes)})
 
 @login_manager.user_loader
 def load_user(user_id):

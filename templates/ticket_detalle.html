@@ -1,28 +1,28 @@
 {% extends "base.html" %}
-{% block title %}Ticket #{{ ticket.id_ticket }} - Sistema Web{% endblock %}
+{% block title %}Ticket #{{ ticket.id_ticket }} - TechFix{% endblock %}
 {% block content %}
 <div class="row mt-4">
     <div class="col-md-4 mb-4">
         <div class="panel p-4 border rounded" style="background-color: #212529;">
-            <h5 class="text-info">Detalles del Ticket #{{ ticket.id_ticket }}</h5>
+            <h5 class="fw-bold" style="color: var(--color-marca);">Detalles del Ticket #{{ ticket.id_ticket }}</h5>
             <hr class="border-secondary">
             <p class="text-light mb-1"><strong>Cliente:</strong> {{ ticket.nombre }}</p>
             <p class="text-light mb-1"><strong>Equipo/Servicio:</strong> {{ ticket.equipo }}</p>
             <p class="text-light mb-1"><strong>Estado:</strong> 
                 <span class="badge {% if ticket.estado == 'Pendiente' %}bg-warning text-dark{% elif ticket.estado == 'En Proceso' %}bg-primary{% else %}bg-success{% endif %}">{{ ticket.estado }}</span>
             </p>
-            <p class="text-muted small mt-3">{{ ticket.descripcion }}</p>
+            <p class="text-muted small mt-3" style="opacity: 0.8;">{{ ticket.descripcion }}</p>
             
             {% if current_user.rol == 'admin' %}
-            <form action="{{ url_for('detalle_ticket', id_ticket=ticket.id_ticket) }}" method="POST" class="mt-4">
-                <label class="text-light small fw-bold">Cambiar Estado:</label>
+            <form action="{{ url_for('detalle_ticket', id_ticket=ticket.id_ticket) }}" method="POST" class="mt-4 border-top border-secondary pt-3">
+                <label class="text-light small fw-bold">Actualizar Estado:</label>
                 <div class="d-flex gap-2 mt-1">
-                    <select name="estado" class="form-select form-select-sm">
+                    <select name="estado" class="form-select form-select-sm bg-dark text-light border-secondary">
                         <option value="Pendiente" {% if ticket.estado == 'Pendiente' %}selected{% endif %}>Pendiente</option>
                         <option value="En Proceso" {% if ticket.estado == 'En Proceso' %}selected{% endif %}>En Proceso</option>
                         <option value="Resuelto" {% if ticket.estado == 'Resuelto' %}selected{% endif %}>Resuelto</option>
                     </select>
-                    <button type="submit" class="btn btn-outline-info btn-sm">Actualizar</button>
+                    <button type="submit" class="btn btn-outline-info btn-sm">Guardar</button>
                 </div>
             </form>
             {% endif %}
@@ -30,30 +30,58 @@
     </div>
     
     <div class="col-md-8">
-        <div class="panel p-4 border rounded" style="background-color: #212529; height: 500px; display: flex; flex-direction: column;">
-            <h5 class="text-success mb-3"><i class="bi bi-chat-dots"></i> Chat de Soporte</h5>
+        <div class="panel p-4 border rounded" style="background-color: #212529; height: 600px; display: flex; flex-direction: column;">
+            <h5 class="fw-bold mb-3" style="color: var(--color-marca);"><i class="bi bi-chat-dots"></i> Centro de Soporte</h5>
             
-            <div class="flex-grow-1 overflow-auto mb-3 pe-2" style="border: 1px solid #495057; border-radius: 5px; padding: 10px; background-color: #1a1d20;">
+            <div id="caja-chat" class="flex-grow-1 overflow-auto mb-3 pe-2" style="border: 1px solid #444; border-radius: 5px; padding: 15px; background-color: #121212;">
                 {% for m in mensajes %}
                 <div class="mb-3 {% if m.id_usuario == current_user.id %}text-end{% endif %}">
-                    
-                    <div class="d-inline-block p-2 rounded text-white text-start {% if m.id_usuario == current_user.id %}bg-primary{% elif m.rol == 'admin' %}bg-success{% else %}bg-secondary{% endif %}" style="max-width: 80%;">
-                        <div class="small fw-bold mb-1">{{ m.nombre }} {% if m.rol == 'admin' %}<i class="bi bi-patch-check-fill text-warning"></i>{% endif %}</div>
-                        <div>{{ m.mensaje }}</div>
-                        <div class="text-white-50" style="font-size: 0.7rem; margin-top: 5px;">{{ m.fecha }}</div>
+                    <div class="d-inline-block p-2 rounded text-white text-start shadow-sm" style="max-width: 80%; background-color: {% if m.id_usuario == current_user.id %}#007bff{% elif m.rol == 'admin' %}#198754{% else %}#495057{% endif %};">
+                        <div class="small fw-bold mb-1" style="color: #f8f9fa;">
+                            {{ m.nombre }} {% if m.rol == 'admin' %}<i class="bi bi-patch-check-fill text-warning" title="Soporte Oficial"></i>{% endif %}
+                        </div>
+                        <div style="font-size: 0.95rem;">{{ m.mensaje }}</div>
+                        <div class="text-white-50 text-end" style="font-size: 0.65rem; margin-top: 5px;">{{ m.fecha.strftime('%H:%M - %d/%b') if m.fecha else '' }}</div>
                     </div>
-                    
                 </div>
                 {% else %}
-                <p class="text-center text-muted mt-4">Aún no hay mensajes en este ticket. ¡Escribe el primero!</p>
+                <div class="text-center mt-5">
+                    <i class="bi bi-chat-square-text text-muted" style="font-size: 3rem;"></i>
+                    <p class="text-muted mt-2">Aún no hay mensajes. Describe tu problema detalladamente.</p>
+                </div>
                 {% endfor %}
             </div>
             
             <form action="{{ url_for('detalle_ticket', id_ticket=ticket.id_ticket) }}" method="POST" class="d-flex gap-2">
-                <input type="text" name="mensaje" class="form-control" placeholder="Escribe un mensaje..." required autocomplete="off">
-                <button type="submit" class="btn btn-primary"><i class="bi bi-send"></i></button>
+                <input type="text" id="input-mensaje" name="mensaje" class="form-control bg-dark text-light border-secondary" placeholder="Escribe tu respuesta aquí..." required autocomplete="off">
+                <button type="submit" class="btn btn-marca fw-bold"><i class="bi bi-send"></i></button>
             </form>
         </div>
     </div>
 </div>
+
+<script>
+    const cajaChat = document.getElementById('caja-chat');
+    cajaChat.scrollTop = cajaChat.scrollHeight;
+
+    const idTicket = {{ ticket.id_ticket }};
+    let cantidadMensajesActuales = {{ mensajes|length }};
+    const inputMensaje = document.getElementById('input-mensaje');
+
+    setInterval(() => {
+        fetch(`/api/mensajes/${idTicket}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.total > cantidadMensajesActuales) {
+                    if (inputMensaje.value.trim() === "") {
+                        window.location.reload();
+                    } else {
+                        inputMensaje.style.borderColor = "#198754";
+                        inputMensaje.placeholder = "¡Tienes una respuesta nueva! Envía tu mensaje para verla.";
+                    }
+                }
+            })
+            .catch(error => console.error("Error revisando mensajes:", error));
+    }, 3000);
+</script>
 {% endblock %}
