@@ -6,10 +6,10 @@
     <input type="text" id="nombre" name="nombre" required><br><br>
 
     <label for="precio">Precio:</label>
-    <input type="number" id="precio" name="precio" step="0.01" required><br><br>
+    <input type="number" name="precio" class="form-control bg-dark text-light border-secondary" min="0" step="0.01" oninput="this.value = this.value.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1');" required>
 
     <label for="cantidad">Cantidad en Stock:</label>
-    <input type="number" id="cantidad" name="cantidad" required><br><br>
+    <input type="number" name="cantidad" class="form-control bg-dark text-light border-secondary" min="0" step="1" oninput="this.value = this.value.replace(/[^0-9]/g, '');" required>
 
     <button type="submit">Guardar Producto</button>
 </form>
