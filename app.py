@@ -97,12 +97,10 @@ def registro():
         direccion = request.form.get('direccion')
         mail = request.form.get('mail')
         password_hash = generate_password_hash(request.form.get('password'))
-        
         conn = obtener_conexion()
         if conn:
             cursor = conn.cursor()
-            cursor.execute("INSERT INTO usuarios (cedula, nombre, telefono, direccion, mail, password, rol) VALUES (%s, %s, %s, %s, %s, %s, 'usuario')", 
-                           (cedula, nombre, telefono, direccion, mail, password_hash))
+            cursor.execute("INSERT INTO usuarios (cedula, nombre, telefono, direccion, mail, password, rol) VALUES (%s, %s, %s, %s, %s, %s, 'usuario')", (cedula, nombre, telefono, direccion, mail, password_hash))
             conn.commit()
             cursor.close()
             conn.close()
@@ -116,14 +114,12 @@ def login():
         mail = request.form.get('mail')
         password = request.form.get('password')
         conn = obtener_conexion()
-        
         if conn:
             cursor = conn.cursor(dictionary=True)
             cursor.execute("SELECT * FROM usuarios WHERE mail = %s", (mail,))
             data = cursor.fetchone()
             cursor.close()
             conn.close()
-            
             if data:
                 if check_password_hash(data['password'], password):
                     user = Usuario(data['id_usuario'], data['cedula'], data['nombre'], data['telefono'], data['direccion'], data['mail'], data['password'], data['rol'])
@@ -136,7 +132,6 @@ def login():
                 flash("Ese correo no está registrado en nuestro sistema.", "warning")
         else:
             flash("Error de conexión con la base de datos.", "danger")
-            
     return render_template('login.html')
 
 @app.route('/logout')
@@ -176,8 +171,7 @@ def soporte():
         conn = obtener_conexion()
         if conn:
             cursor = conn.cursor()
-            cursor.execute("INSERT INTO tickets (id_usuario, equipo, descripcion, estado) VALUES (%s, %s, %s, 'Pendiente')", 
-                           (current_user.id, equipo, descripcion))
+            cursor.execute("INSERT INTO tickets (id_usuario, equipo, descripcion, estado) VALUES (%s, %s, %s, 'Pendiente')", (current_user.id, equipo, descripcion))
             conn.commit()
             cursor.close()
             conn.close()
@@ -185,24 +179,98 @@ def soporte():
             return redirect(url_for('mis_tickets'))
     return render_template('soporte.html', servicio_pre=servicio_pre)
 
-@app.route('/solicitar_repuesto/<int:id_prod>')
+@app.route('/agregar_carrito/<int:id_prod>')
 @login_required
-def solicitar_repuesto(id_prod):
+def agregar_carrito(id_prod):
     conn = obtener_conexion()
     if conn:
         cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT nombre FROM productos WHERE id = %s", (id_prod,))
+        cursor.execute("SELECT * FROM productos WHERE id = %s", (id_prod,))
         prod = cursor.fetchone()
-        if prod:
-            equipo = f"Compra de Repuesto: {prod['nombre']}"
-            descripcion = "El cliente ha solicitado la compra de este repuesto desde la tienda. Contactar para detalles de entrega."
-            cursor.execute("INSERT INTO tickets (id_usuario, equipo, descripcion, estado) VALUES (%s, %s, %s, 'Pendiente')",
-                           (current_user.id, equipo, descripcion))
+        if prod and prod['cantidad'] > 0:
+            cursor.execute("INSERT INTO carrito (id_usuario, id_producto) VALUES (%s, %s)", (current_user.id, id_prod))
             conn.commit()
-            flash(f"Se ha creado un ticket automático para tu compra de: {prod['nombre']}", "success")
+            flash(f"'{prod['nombre']}' se ha agregado a tu carrito.", "success")
+        else:
+            flash("El producto está agotado.", "danger")
         cursor.close()
         conn.close()
-    return redirect(url_for('mis_tickets'))
+    return redirect(url_for('mis_compras'))
+
+@app.route('/eliminar_carrito/<int:id_carrito>')
+@login_required
+def eliminar_carrito(id_carrito):
+    conn = obtener_conexion()
+    if conn:
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM carrito WHERE id_carrito = %s AND id_usuario = %s", (id_carrito, current_user.id))
+        conn.commit()
+        cursor.close()
+        conn.close()
+        flash("Repuesto eliminado de tu carrito.", "info")
+    return redirect(url_for('mis_compras'))
+
+@app.route('/comprar_carrito/<int:id_carrito>')
+@login_required
+def comprar_carrito(id_carrito):
+    conn = obtener_conexion()
+    if conn:
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT c.id_carrito, p.* FROM carrito c JOIN productos p ON c.id_producto = p.id WHERE c.id_carrito = %s AND c.id_usuario = %s", (id_carrito, current_user.id))
+        item = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        if item and item['cantidad'] > 0:
+            return render_template('pago.html', producto=item, id_carrito=id_carrito)
+        else:
+            flash("Lo sentimos, este producto ya no tiene stock disponible.", "danger")
+    return redirect(url_for('mis_compras'))
+
+@app.route('/procesar_pago', methods=['POST'])
+@login_required
+def procesar_pago():
+    id_carrito = request.form.get('id_carrito')
+    conn = obtener_conexion()
+    if conn:
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT c.id_carrito, p.* FROM carrito c JOIN productos p ON c.id_producto = p.id WHERE c.id_carrito = %s", (id_carrito,))
+        item = cursor.fetchone()
+        
+        if item and item['cantidad'] > 0:
+            cursor.execute("UPDATE productos SET cantidad = cantidad - 1 WHERE id = %s", (item['id'],))
+            cursor.execute("INSERT INTO compras (id_usuario, producto, precio) VALUES (%s, %s, %s)", (current_user.id, item['nombre'], item['precio']))
+            cursor.execute("DELETE FROM carrito WHERE id_carrito = %s", (id_carrito,))
+            equipo = f"Compra online: {item['nombre']}"
+            descripcion = "Pago recibido con éxito. Tu repuesto está listo para ser retirado o instalado en nuestro taller."
+            cursor.execute("INSERT INTO tickets (id_usuario, equipo, descripcion, estado) VALUES (%s, %s, %s, 'Resuelto')", (current_user.id, equipo, descripcion))
+            conn.commit()
+            actualizar_archivos_respaldo()
+            flash(f"¡Pago exitoso! El repuesto '{item['nombre']}' ya aparece en tu historial de compras.", "success")
+        else:
+            flash("Error: El producto se agotó antes de procesar el pago.", "danger")
+        cursor.close()
+        conn.close()
+    return redirect(url_for('mis_compras'))
+
+@app.route('/mis_compras')
+@login_required
+def mis_compras():
+    conn = obtener_conexion()
+    if conn:
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT c.id_carrito, p.nombre as producto, p.precio, p.cantidad as stock FROM carrito c JOIN productos p ON c.id_producto = p.id WHERE c.id_usuario = %s ORDER BY c.fecha DESC", (current_user.id,))
+        carrito_db = cursor.fetchall()
+        
+        if current_user.rol == 'admin':
+            cursor.execute("SELECT c.*, u.nombre as cliente FROM compras c JOIN usuarios u ON c.id_usuario = u.id_usuario ORDER BY c.fecha DESC")
+        else:
+            cursor.execute("SELECT * FROM compras WHERE id_usuario = %s ORDER BY fecha DESC", (current_user.id,))
+        compras_db = cursor.fetchall()
+        
+        cursor.close()
+        conn.close()
+        return render_template('compras.html', compras=compras_db, carrito=carrito_db)
+    return abort(500)
 
 @app.route('/mis_tickets')
 @login_required
@@ -229,20 +297,17 @@ def detalle_ticket(id_ticket):
     if request.method == 'POST':
         mensaje = request.form.get('mensaje')
         if mensaje:
-            cursor.execute("INSERT INTO mensajes_ticket (id_ticket, id_usuario, mensaje) VALUES (%s, %s, %s)", 
-                           (id_ticket, current_user.id, mensaje))
+            cursor.execute("INSERT INTO mensajes_ticket (id_ticket, id_usuario, mensaje) VALUES (%s, %s, %s)", (id_ticket, current_user.id, mensaje))
             conn.commit()
         nuevo_estado = request.form.get('estado')
         if nuevo_estado and current_user.rol == 'admin':
             cursor.execute("UPDATE tickets SET estado = %s WHERE id_ticket = %s", (nuevo_estado, id_ticket))
             conn.commit()
         return redirect(url_for('detalle_ticket', id_ticket=id_ticket))
-
     cursor.execute("SELECT t.*, u.nombre, u.mail FROM tickets t JOIN usuarios u ON t.id_usuario = u.id_usuario WHERE t.id_ticket = %s", (id_ticket,))
     ticket = cursor.fetchone()
     if not ticket or (current_user.rol != 'admin' and ticket['id_usuario'] != current_user.id):
         abort(403)
-        
     cursor.execute("SELECT m.*, u.nombre, u.rol FROM mensajes_ticket m JOIN usuarios u ON m.id_usuario = u.id_usuario WHERE m.id_ticket = %s ORDER BY m.fecha ASC", (id_ticket,))
     mensajes = cursor.fetchall()
     cursor.close()
@@ -274,12 +339,10 @@ def admin_crear_usuario():
     mail = request.form.get('mail')
     password_hash = generate_password_hash(request.form.get('password'))
     rol = request.form.get('rol')
-    
     conn = obtener_conexion()
     if conn:
         cursor = conn.cursor()
-        cursor.execute("INSERT INTO usuarios (cedula, nombre, telefono, direccion, mail, password, rol) VALUES (%s, %s, %s, %s, %s, %s, %s)", 
-                       (cedula, nombre, telefono, direccion, mail, password_hash, rol))
+        cursor.execute("INSERT INTO usuarios (cedula, nombre, telefono, direccion, mail, password, rol) VALUES (%s, %s, %s, %s, %s, %s, %s)", (cedula, nombre, telefono, direccion, mail, password_hash, rol))
         conn.commit()
         cursor.close()
         conn.close()
@@ -297,18 +360,12 @@ def asignar_producto():
         cursor = conn.cursor(dictionary=True)
         cursor.execute("SELECT * FROM productos WHERE id = %s", (id_producto,))
         prod = cursor.fetchone()
-        
         if prod and prod['cantidad'] > 0:
             cursor.execute("UPDATE productos SET cantidad = cantidad - 1 WHERE id = %s", (id_producto,))
-            
-            cursor.execute("INSERT INTO compras (id_usuario, producto, precio) VALUES (%s, %s, %s)", 
-                           (id_usuario, prod['nombre'], prod['precio']))
-            
+            cursor.execute("INSERT INTO compras (id_usuario, producto, precio) VALUES (%s, %s, %s)", (id_usuario, prod['nombre'], prod['precio']))
             equipo = f"Entrega de Repuesto: {prod['nombre']}"
             descripcion = "El administrador ha asignado este repuesto a tu inventario personal."
-            cursor.execute("INSERT INTO tickets (id_usuario, equipo, descripcion, estado) VALUES (%s, %s, %s, 'Resuelto')", 
-                           (id_usuario, equipo, descripcion))
-            
+            cursor.execute("INSERT INTO tickets (id_usuario, equipo, descripcion, estado) VALUES (%s, %s, %s, 'Resuelto')", (id_usuario, equipo, descripcion))
             conn.commit()
             actualizar_archivos_respaldo()
             flash(f"Repuesto asignado. Ahora aparece en el stock personal del cliente.", "success")
@@ -393,25 +450,9 @@ def reporte_inventario():
     PDFService.generar_reporte_general(filepath)
     return send_file(filepath, as_attachment=True, download_name="Reporte_General_TechFix.pdf")
 
-@app.route('/mis_compras')
-@login_required
-def mis_compras():
-    conn = obtener_conexion()
-    if conn:
-        cursor = conn.cursor(dictionary=True)
-        if current_user.rol == 'admin':
-            cursor.execute("SELECT c.*, u.nombre as cliente FROM compras c JOIN usuarios u ON c.id_usuario = u.id_usuario ORDER BY c.fecha DESC")
-        else:
-            cursor.execute("SELECT * FROM compras WHERE id_usuario = %s ORDER BY fecha DESC", (current_user.id,))
-        compras_db = cursor.fetchall()
-        cursor.close()
-        conn.close()
-        return render_template('compras.html', compras=compras_db)
-    return abort(500)
-
 @app.errorhandler(403)
 def acceso_denegado(error):
     return render_template('403.html'), 403
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app

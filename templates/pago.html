@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}Pasarela de Pago - TechFix{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mt-4 mb-5">
+    <div class="col-md-4 mb-4">
+        <div class="panel p-4 rounded h-100" style="background-color: #1a1a1a; border: 1px solid #333;">
+            <h5 class="fw-bold text-light mb-3 border-bottom border-secondary pb-2">Resumen de Compra</h5>
+            <div class="text-center mb-3">
+                <i class="bi bi-box-seam" style="font-size: 4rem; color: var(--color-marca);"></i>
+            </div>
+            <h6 class="text-light fw-bold">{{ producto.nombre }}</h6>
+            <p class="text-muted small">{{ producto.descripcion }}</p>
+            <hr class="border-secondary">
+            <div class="d-flex justify-content-between align-items-center">
+                <span class="text-light">Total a pagar:</span>
+                <span class="fs-4 fw-bold text-success">${{ producto.precio }}</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="panel p-4 rounded" style="background-color: #1e1e1e; border: 1px solid #333;">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h4 class="fw-bold mb-0" style="color: var(--color-marca);"><i class="bi bi-credit-card-2-front"></i> Detalles de Pago</h4>
+                <div class="d-flex gap-2 text-muted">
+                    <i class="bi bi-cc-visa fs-3"></i>
+                    <i class="bi bi-cc-mastercard fs-3"></i>
+                </div>
+            </div>
+
+            <form action="{{ url_for('procesar_pago') }}" method="POST">
+                <input type="hidden" name="id_carrito" value="{{ id_carrito }}">
+                
+                <div class="mb-3">
+                    <label class="form-label text-light fw-bold small">Nombre en la Tarjeta</label>
+                    <input type="text" class="form-control bg-dark text-light border-secondary" value="{{ current_user.nombre }}" required>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label text-light fw-bold small">Número de Tarjeta</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-dark text-light border-secondary"><i class="bi bi-credit-card"></i></span>
+                        <input type="text" class="form-control bg-dark text-light border-secondary" placeholder="0000 0000 0000 0000" maxlength="16" oninput="this.value = this.value.replace(/[^0-9]/g, '');" required>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6 mb-4">
+                        <label class="form-label text-light fw-bold small">Fecha Expiración (MM/AA)</label>
+                        <input type="text" class="form-control bg-dark text-light border-secondary" placeholder="12/28" maxlength="5" required>
+                    </div>
+                    <div class="col-md-6 mb-4">
+                        <label class="form-label text-light fw-bold small">Código CVC</label>
+                        <div class="input-group">
+                            <input type="password" class="form-control bg-dark text-light border-secondary" placeholder="123" maxlength="3" oninput="this.value = this.value.replace(/[^0-9]/g, '');" required>
+                            <span class="input-group-text bg-dark text-light border-secondary"><i class="bi bi-shield-lock"></i></span>
+                        </div>
+                    </div>
+                </div>
+                
+                <button type="submit" class="btn btn-marca w-100 py-3 fs-5 fw-bold shadow-sm">
+                    <i class="bi bi-lock-fill"></i> Pagar ${{ producto.precio }}
+                </button>
+                <div class="text-center mt-3">
+                    <small class="text-muted"><i class="bi bi-shield-check text-success"></i> Pago encriptado y seguro</small>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

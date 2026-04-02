@@ -1,13 +1,75 @@
 {% extends "base.html" %}
-{% block title %}Mi Inventario - TechFix{% endblock %}
+{% block title %}Mis Repuestos - TechFix{% endblock %}
 
 {% block content %}
+
+{% if current_user.rol != 'admin' %}
+<div class="row mt-4 justify-content-center mb-5">
+    <div class="col-md-10">
+        <div class="panel p-4 rounded" style="background-color: #1a1a1a; border: 1px dashed var(--color-marca);">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="fw-bold mb-0 text-info">
+                    <i class="bi bi-cart"></i> Mi Carrito de Compras
+                </h5>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-dark align-middle">
+                    <thead>
+                        <tr>
+                            <th class="text-info">Repuesto Seleccionado</th>
+                            <th class="text-info">Precio</th>
+                            <th class="text-info">Estado</th>
+                            <th class="text-center text-info">Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in carrito %}
+                        <tr>
+                            <td class="fw-bold">{{ item.producto }}</td>
+                            <td class="text-success fw-bold">${{ item.precio }}</td>
+                            <td>
+                                {% if item.stock > 0 %}
+                                    <span class="badge bg-success">Disponible</span>
+                                {% else %}
+                                    <span class="badge bg-danger">Se agotó</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                {% if item.stock > 0 %}
+                                    <a href="{{ url_for('comprar_carrito', id_carrito=item.id_carrito) }}" class="btn btn-marca btn-sm fw-bold">
+                                        <i class="bi bi-credit-card"></i> Pagar
+                                    </a>
+                                {% endif %}
+                                <a href="{{ url_for('eliminar_carrito', id_carrito=item.id_carrito) }}" class="btn btn-outline-danger btn-sm">
+                                    <i class="bi bi-trash"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="4" class="text-center py-4 text-muted small">Tu carrito está vacío. Ve al catálogo para agregar repuestos.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
 <div class="row mt-4 justify-content-center">
     <div class="col-md-10">
         <div class="panel p-4 rounded" style="background-color: #1e1e1e; border: 1px solid #333;">
             <div class="d-flex justify-content-between align-items-center mb-4 border-bottom border-secondary pb-3">
                 <h4 class="fw-bold mb-0" style="color: var(--color-marca);">
-                    <i class="bi bi-boxes"></i> {% if current_user.rol == 'admin' %}Registro Global de Ventas{% else %}Mi Stock de Repuestos{% endif %}
+                    <i class="bi bi-boxes"></i> 
+                    {% if current_user.rol == 'admin' %}
+                        Registro Global de Ventas
+                    {% else %}
+                        Historial de Compras (Stock Personal)
+                    {% endif %}
                 </h4>
             </div>
 
@@ -16,26 +78,34 @@
                     <thead>
                         <tr>
                             <th style="color: var(--color-marca);">ID Compra</th>
-                            {% if current_user.rol == 'admin' %><th style="color: var(--color-marca);">Cliente</th>{% endif %}
-                            <th style="color: var(--color-marca);">Producto / Repuesto</th>
-                            <th style="color: var(--color-marca);">Precio Pagado</th>
-                            <th style="color: var(--color-marca);">Fecha de Adquisición</th>
+                            {% if current_user.rol == 'admin' %}
+                                <th style="color: var(--color-marca);">Cliente</th>
+                            {% endif %}
+                            <th style="color: var(--color-marca);">Repuesto Adquirido</th>
+                            <th style="color: var(--color-marca);">Pagado</th>
+                            <th style="color: var(--color-marca);">Fecha</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for c in compras %}
                         <tr>
                             <td class="text-white-50">#{{ c.id_compra }}</td>
-                            {% if current_user.rol == 'admin' %}<td>{{ c.cliente }}</td>{% endif %}
-                            <td class="text-light fw-bold">{{ c.producto }}</td>
+                            {% if current_user.rol == 'admin' %}
+                                <td>{{ c.cliente }}</td>
+                            {% endif %}
+                            <td class="text-light fw-bold"><i class="bi bi-check-circle-fill text-success me-2"></i>{{ c.producto }}</td>
                             <td class="text-success fw-bold">${{ c.precio }}</td>
                             <td class="text-muted" style="font-size: 0.85rem;">{{ c.fecha.strftime('%d/%m/%Y - %H:%M') if c.fecha else 'N/A' }}</td>
                         </tr>
                         {% else %}
                         <tr>
                             <td colspan="5" class="text-center py-5 text-muted">
-                                <i class="bi bi-cart-x" style="font-size: 3rem;"></i><br>
-                                {% if current_user.rol == 'admin' %}No hay ventas registradas aún.{% else %}Aún no tienes repuestos en tu inventario personal.{% endif %}
+                                <i class="bi bi-bag-x" style="font-size: 3rem;"></i><br>
+                                {% if current_user.rol == 'admin' %}
+                                    No hay ventas registradas aún.
+                                {% else %}
+                                    Aún no tienes compras finalizadas.
+                                {% endif %}
                             </td>
                         </tr>
                         {% endfor %}

@@ -19,6 +19,7 @@ def inicializar_base_datos():
     if conn:
         try:
             cursor = conn.cursor()
+            
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS usuarios (
                     id_usuario INT AUTO_INCREMENT PRIMARY KEY,
@@ -31,6 +32,7 @@ def inicializar_base_datos():
                     rol VARCHAR(20) DEFAULT 'usuario'
                 )
             """)
+            
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS tickets (
                     id_ticket INT AUTO_INCREMENT PRIMARY KEY,
@@ -42,6 +44,7 @@ def inicializar_base_datos():
                     FOREIGN KEY (id_usuario) REFERENCES usuarios(id_usuario) ON DELETE CASCADE
                 )
             """)
+            
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS mensajes_ticket (
                     id_mensaje INT AUTO_INCREMENT PRIMARY KEY,
@@ -53,6 +56,7 @@ def inicializar_base_datos():
                     FOREIGN KEY (id_usuario) REFERENCES usuarios(id_usuario) ON DELETE CASCADE
                 )
             """)
+            
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS productos (
                     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -63,6 +67,7 @@ def inicializar_base_datos():
                     imagen VARCHAR(255) NOT NULL
                 )
             """)
+            
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS compras (
                     id_compra INT AUTO_INCREMENT PRIMARY KEY,
@@ -73,6 +78,18 @@ def inicializar_base_datos():
                     FOREIGN KEY (id_usuario) REFERENCES usuarios(id_usuario) ON DELETE CASCADE
                 )
             """)
+
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS carrito (
+                    id_carrito INT AUTO_INCREMENT PRIMARY KEY,
+                    id_usuario INT NOT NULL,
+                    id_producto INT NOT NULL,
+                    fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (id_usuario) REFERENCES usuarios(id_usuario) ON DELETE CASCADE,
+                    FOREIGN KEY (id_producto) REFERENCES productos(id) ON DELETE CASCADE
+                )
+            """)
+            
             conn.commit()
             cursor.close()
         except Error:
