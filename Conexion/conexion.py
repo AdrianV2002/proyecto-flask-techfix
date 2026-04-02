@@ -63,6 +63,16 @@ def inicializar_base_datos():
                     imagen VARCHAR(255) NOT NULL
                 )
             """)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS compras (
+                    id_compra INT AUTO_INCREMENT PRIMARY KEY,
+                    id_usuario INT NOT NULL,
+                    producto VARCHAR(150) NOT NULL,
+                    precio DECIMAL(10,2) NOT NULL,
+                    fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (id_usuario) REFERENCES usuarios(id_usuario) ON DELETE CASCADE
+                )
+            """)
             conn.commit()
             cursor.close()
         except Error:

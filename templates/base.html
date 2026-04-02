@@ -22,6 +22,7 @@
                     <li class="nav-item"><a class="nav-link" href="{{ url_for('home') }}">Inicio</a></li>
                     <li class="nav-item"><a class="nav-link" href="{{ url_for('catalogo') }}">Repuestos</a></li>
                     <li class="nav-item"><a class="nav-link" href="{{ url_for('servicios') }}">Servicios</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('nosotros') }}">Nosotros</a></li>
                     
                     {% if current_user.is_authenticated %}
                         <li class="nav-item">
@@ -32,6 +33,12 @@
                                         {{ tickets_pendientes }}
                                     </span>
                                 {% endif %}
+                            </a>
+                        </li>
+                        
+                        <li class="nav-item">
+                            <a class="nav-link text-light" href="{{ url_for('mis_compras') }}">
+                                <i class="bi bi-box-seam"></i> Mis Repuestos
                             </a>
                         </li>
                         

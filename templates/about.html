@@ -1,29 +1,53 @@
 {% extends "base.html" %}
-
-{% block title %}Acerca de - TechFix{% endblock %}
+{% block title %}Nosotros - TechFix{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center mt-4">
-    <div class="col-md-8">
-        <div class="panel">
-            <h2 class="panel-header" style="color: var(--accent);">
-                <i class="bi bi-info-circle-fill"></i> Acerca de TechFix
-            </h2>
-            
-            <p class="fs-5 text-white" style="line-height: 1.7;">
-                <strong>TechFix</strong> es una plataforma web desarrollada para optimizar la administración y el seguimiento de equipos en talleres de soporte técnico.
-            </p>
-            
-            <p class="text-light mt-3" style="line-height: 1.7;">
-                Este proyecto nace de la aplicación práctica de conceptos de <strong class="text-white">Ingeniería de Sistemas</strong> y desarrollo web moderno utilizando el microframework Flask y el motor de plantillas Jinja2. Nuestro objetivo es ofrecer a los técnicos y clientes locales en Tena una herramienta ágil para visualizar el progreso de las reparaciones en tiempo real.
-            </p>
-            
-            <div class="mt-5 text-center p-4" style="background: rgba(0, 210, 255, 0.05); border-radius: 15px; border: 1px solid var(--border);">
-                <p class="text-muted mb-4"><i class="bi bi-code-slash"></i> Desarrollado como parte del proyecto de la Semana 13.</p>
-                <a href="{{ url_for('home') }}" class="btn-custom">
-                    <i class="bi bi-house-door"></i> Ir al sistema
-                </a>
+<div class="row align-items-center mt-4 mb-5 pb-4 border-bottom border-secondary">
+    <div class="col-lg-7 mb-4 mb-lg-0">
+        <h1 class="display-4 text-light fw-bold mb-3">
+            Más que soporte, <span style="color: var(--color-marca);">somos soluciones.</span>
+        </h1>
+        <p class="lead text-light mb-4" style="opacity: 0.85;">
+            En TechFix nacimos con un objetivo claro: democratizar y agilizar el acceso a servicios técnicos de calidad. Entendemos que tu tecnología es vital para tu día a día, por eso ofrecemos reparaciones transparentes y repuestos garantizados.
+        </p>
+    </div>
+    <div class="col-lg-5 text-center d-none d-lg-block">
+        <i class="bi bi-cpu" style="color: var(--color-marca); font-size: 12rem; opacity: 0.8;"></i>
+    </div>
+</div>
+
+<div class="row mt-5">
+    <div class="col-md-6 mb-4">
+        <div class="panel p-5 h-100 rounded" style="background-color: #1e1e1e; border: 1px solid #333;">
+            <div class="mb-3">
+                <i class="bi bi-rocket-takeoff" style="font-size: 2.5rem; color: var(--color-marca);"></i>
             </div>
+            <h3 class="fw-bold text-light">Nuestra Misión</h3>
+            <p class="text-light mt-3" style="opacity: 0.8;">
+                Proveer un servicio técnico informático rápido, eficiente y honesto. Buscamos resolver los problemas tecnológicos de nuestros clientes mientras mantenemos un catálogo de repuestos accesible y de alta calidad.
+            </p>
+        </div>
+    </div>
+    <div class="col-md-6 mb-4">
+        <div class="panel p-5 h-100 rounded" style="background-color: #1e1e1e; border: 1px solid #333;">
+            <div class="mb-3">
+                <i class="bi bi-eye" style="font-size: 2.5rem; color: var(--color-marca);"></i>
+            </div>
+            <h3 class="fw-bold text-light">Nuestra Visión</h3>
+            <p class="text-light mt-3" style="opacity: 0.8;">
+                Convertirnos en la plataforma líder en gestión de reparaciones y venta de componentes tecnológicos a nivel nacional, reconocidos por nuestra innovación, sistema automatizado y atención al cliente.
+            </p>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12 text-center">
+        <div class="panel p-4 rounded" style="background-color: #1a1a1a; border: 1px dashed var(--color-marca);">
+            <h4 class="fw-bold text-light mb-3">El Equipo</h4>
+            <p class="text-light mb-0" style="opacity: 0.8;">
+                TechFix es un proyecto desarrollado y diseñado por <strong>Adrián Villegas</strong>, enfocado en aplicar las mejores prácticas de desarrollo web, bases de datos relacionales y diseño de interfaces en el año 2026.
+            </p>
         </div>
     </div>
 </div>

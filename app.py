@@ -149,6 +149,10 @@ def logout():
 def home():
     return render_template('index.html')
 
+@app.route('/nosotros')
+def nosotros():
+    return render_template('about.html')
+
 @app.route('/catalogo')
 def catalogo():
     return render_template('productos.html', productos=ProductoService.obtener_todos())
@@ -293,15 +297,21 @@ def asignar_producto():
         cursor = conn.cursor(dictionary=True)
         cursor.execute("SELECT * FROM productos WHERE id = %s", (id_producto,))
         prod = cursor.fetchone()
+        
         if prod and prod['cantidad'] > 0:
             cursor.execute("UPDATE productos SET cantidad = cantidad - 1 WHERE id = %s", (id_producto,))
+            
+            cursor.execute("INSERT INTO compras (id_usuario, producto, precio) VALUES (%s, %s, %s)", 
+                           (id_usuario, prod['nombre'], prod['precio']))
+            
             equipo = f"Entrega de Repuesto: {prod['nombre']}"
-            descripcion = "El administrador te ha asignado y entregado este repuesto directamente. El inventario se ha actualizado."
+            descripcion = "El administrador ha asignado este repuesto a tu inventario personal."
             cursor.execute("INSERT INTO tickets (id_usuario, equipo, descripcion, estado) VALUES (%s, %s, %s, 'Resuelto')", 
                            (id_usuario, equipo, descripcion))
+            
             conn.commit()
             actualizar_archivos_respaldo()
-            flash(f"Repuesto '{prod['nombre']}' asignado al usuario exitosamente. Stock actualizado.", "success")
+            flash(f"Repuesto asignado. Ahora aparece en el stock personal del cliente.", "success")
         else:
             flash("Error: No hay stock suficiente de ese producto.", "danger")
         cursor.close()
@@ -382,6 +392,22 @@ def reporte_inventario():
     filepath = os.path.join(basedir, 'Reporte_TechFix.pdf')
     PDFService.generar_reporte_general(filepath)
     return send_file(filepath, as_attachment=True, download_name="Reporte_General_TechFix.pdf")
+
+@app.route('/mis_compras')
+@login_required
+def mis_compras():
+    conn = obtener_conexion()
+    if conn:
+        cursor = conn.cursor(dictionary=True)
+        if current_user.rol == 'admin':
+            cursor.execute("SELECT c.*, u.nombre as cliente FROM compras c JOIN usuarios u ON c.id_usuario = u.id_usuario ORDER BY c.fecha DESC")
+        else:
+            cursor.execute("SELECT * FROM compras WHERE id_usuario = %s ORDER BY fecha DESC", (current_user.id,))
+        compras_db = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        return render_template('compras.html', compras=compras_db)
+    return abort(500)
 
 @app.errorhandler(403)
 def acceso_denegado(error):
