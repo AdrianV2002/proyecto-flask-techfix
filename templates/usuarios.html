@@ -1,50 +1,167 @@
 {% extends "base.html" %}
-{% block title %}Usuarios - Sistema Web{% endblock %}
+{% block title %}Gestión de Usuarios - TechFix{% endblock %}
 {% block content %}
 <div class="row mt-4">
-    <div class="col-md-12 panel">
-        <h4 class="text-info mb-4"><i class="bi bi-people"></i> Gestión de Usuarios</h4>
-        <div class="table-responsive">
-            <table class="table table-dark align-middle">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Nombre</th>
-                        <th>Correo</th>
-                        <th>Tickets</th>
-                        <th>Rol</th>
-                        <th class="text-center">Acciones</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for u in usuarios %}
-                    <tr>
-                        <td class="text-muted">#{{ u.id_usuario }}</td>
-                        <td>{{ u.nombre }}</td>
-                        <td>{{ u.mail }}</td>
-                        <td><span class="badge bg-secondary">{{ u.total_tickets }}</span></td>
-                        <td>
-                            <form action="{{ url_for('cambiar_rol') }}" method="POST" class="d-flex gap-2">
-                                <input type="hidden" name="id_usuario" value="{{ u.id_usuario }}">
-                                <select name="rol" class="form-select form-select-sm" {% if u.id_usuario == current_user.id %}disabled{% endif %}>
-                                    <option value="usuario" {% if u.rol == 'usuario' %}selected{% endif %}>Usuario</option>
-                                    <option value="admin" {% if u.rol == 'admin' %}selected{% endif %}>Administrador</option>
-                                </select>
-                                {% if u.id_usuario != current_user.id %}
-                                <button type="submit" class="btn btn-outline-info btn-sm"><i class="bi bi-check2"></i></button>
-                                {% endif %}
-                            </form>
-                        </td>
-                        <td class="text-center">
-                            {% if u.id_usuario != current_user.id %}
-                            <a href="{{ url_for('eliminar_usuario', id_usuario=u.id_usuario) }}" class="btn btn-outline-danger btn-sm"><i class="bi bi-trash"></i></a>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+    <div class="col-md-12">
+        <div class="panel p-4 rounded" style="background-color: #1e1e1e; border: 1px solid #333;">
+            
+            <div class="d-flex justify-content-between align-items-center mb-4 border-bottom border-secondary pb-3">
+                <h4 class="fw-bold mb-0" style="color: var(--color-marca);"><i class="bi bi-people"></i> Control de Clientes y Usuarios</h4>
+                <button class="btn btn-marca fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#modalNuevoUsuario">
+                    <i class="bi bi-person-plus-fill"></i> Registrar Cliente Manual
+                </button>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-dark align-middle table-hover">
+                    <thead>
+                        <tr class="text-uppercase" style="font-size: 0.85rem; letter-spacing: 1px;">
+                            <th style="color: var(--color-marca);">Cédula/DNI</th>
+                            <th style="color: var(--color-marca);">Nombre y Dirección</th>
+                            <th style="color: var(--color-marca);">Contacto</th>
+                            <th style="color: var(--color-marca);" class="text-center">Tickets</th>
+                            <th style="color: var(--color-marca);">Rol</th>
+                            <th class="text-center" style="color: var(--color-marca);">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for u in usuarios %}
+                        <tr>
+                            <td class="fw-bold text-info">{{ u.cedula }}</td>
+                            <td>
+                                <div class="text-light fw-bold">{{ u.nombre }}</div>
+                                <div class="text-muted" style="font-size: 0.75rem;"><i class="bi bi-geo-alt"></i> {{ u.direccion }}</div>
+                            </td>
+                            <td>
+                                <div class="text-light" style="font-size: 0.9rem;"><i class="bi bi-telephone"></i> {{ u.telefono }}</div>
+                                <div class="text-muted" style="font-size: 0.85rem;">{{ u.mail }}</div>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge rounded-pill bg-dark border border-secondary text-info px-3">{{ u.total_tickets }}</span>
+                            </td>
+                            <td>
+                                <form action="{{ url_for('cambiar_rol') }}" method="POST" class="d-flex gap-2">
+                                    <input type="hidden" name="id_usuario" value="{{ u.id_usuario }}">
+                                    <select name="rol" class="form-select form-select-sm bg-dark text-light border-secondary" style="font-size: 0.8rem;" {% if u.id_usuario == current_user.id %}disabled{% endif %}>
+                                        <option value="usuario" {% if u.rol == 'usuario' %}selected{% endif %}>Usuario</option>
+                                        <option value="admin" {% if u.rol == 'admin' %}selected{% endif %}>Admin</option>
+                                    </select>
+                                    {% if u.id_usuario != current_user.id %}
+                                    <button type="submit" class="btn btn-outline-info btn-sm"><i class="bi bi-check-lg"></i></button>
+                                    {% endif %}
+                                </form>
+                            </td>
+                            <td class="text-center">
+                                <div class="btn-group">
+                                    <button class="btn btn-outline-warning btn-sm" data-bs-toggle="modal" data-bs-target="#modalAsignar{{ u.id_usuario }}" title="Entregar Repuesto">
+                                        <i class="bi bi-box-seam"></i>
+                                    </button>
+                                    {% if u.id_usuario != current_user.id %}
+                                    <a href="{{ url_for('eliminar_usuario', id_usuario=u.id_usuario) }}" class="btn btn-outline-danger btn-sm" onclick="return confirm('¿Seguro que deseas eliminar este usuario?');">
+                                        <i class="bi bi-trash"></i>
+                                    </a>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+
+                        <div class="modal fade" id="modalAsignar{{ u.id_usuario }}" tabindex="-1" aria-hidden="true">
+                            <div class="modal-dialog">
+                                <div class="modal-content" style="background-color: #1e1e1e; border: 1px solid #444;">
+                                    <div class="modal-header border-secondary">
+                                        <h5 class="modal-title text-warning fw-bold"><i class="bi bi-box-seam"></i> Asignar Repuesto a {{ u.nombre }}</h5>
+                                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                    </div>
+                                    <form action="{{ url_for('asignar_producto') }}" method="POST">
+                                        <div class="modal-body">
+                                            <input type="hidden" name="id_usuario" value="{{ u.id_usuario }}">
+                                            <p class="text-light small mb-3">Elige un producto del inventario para entregárselo a este cliente directamente.</p>
+                                            <select name="id_producto" class="form-select bg-dark text-light border-secondary" required>
+                                                <option value="" disabled selected>Seleccionar repuesto...</option>
+                                                {% for p in productos %}
+                                                <option value="{{ p.id }}">{{ p.nombre }} (Stock: {{ p.cantidad }}) - ${{ p.price }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                        <div class="modal-footer border-secondary">
+                                            <button type="button" class="btn btn-outline-light btn-sm" data-bs-dismiss="modal">Cerrar</button>
+                                            <button type="submit" class="btn btn-warning btn-sm fw-bold text-dark">Confirmar Entrega</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 </div>
+
+<div class="modal fade" id="modalNuevoUsuario" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content" style="background-color: #1e1e1e; border: 1px solid #444;">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title fw-bold" style="color: var(--color-marca);"><i class="bi bi-person-plus"></i> Registrar Nuevo Cliente</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="{{ url_for('admin_crear_usuario') }}" method="POST">
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3 has-validation">
+                            <label class="form-label text-light small fw-bold">Cédula / DNI</label>
+                            <input type="text" name="cedula" class="form-control bg-dark text-light border-secondary" pattern="[0-9]+" maxlength="10" oninput="mostrarErrorNumeros(this);" required>
+                            <div class="invalid-feedback fw-bold"><i class="bi bi-exclamation-triangle"></i> Solo números.</div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label text-light small fw-bold">Nombre Completo</label>
+                            <input type="text" name="nombre" class="form-control bg-dark text-light border-secondary" required>
+                        </div>
+                        <div class="col-md-6 mb-3 has-validation">
+                            <label class="form-label text-light small fw-bold">Teléfono de Contacto</label>
+                            <input type="text" name="telefono" class="form-control bg-dark text-light border-secondary" pattern="[0-9]+" maxlength="15" oninput="mostrarErrorNumeros(this);" required>
+                            <div class="invalid-feedback fw-bold"><i class="bi bi-exclamation-triangle"></i> Solo números.</div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label text-light small fw-bold">Correo Electrónico</label>
+                            <input type="email" name="mail" class="form-control bg-dark text-light border-secondary" required>
+                        </div>
+                        <div class="col-12 mb-3">
+                            <label class="form-label text-light small fw-bold">Dirección Exacta</label>
+                            <input type="text" name="direccion" class="form-control bg-dark text-light border-secondary" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label text-light small fw-bold">Contraseña Provisional</label>
+                            <input type="password" name="password" class="form-control bg-dark text-light border-secondary" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label text-light small fw-bold">Rol en el Sistema</label>
+                            <select name="rol" class="form-select bg-dark text-light border-secondary">
+                                <option value="usuario" selected>Cliente</option>
+                                <option value="admin">Administrador</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-marca fw-bold"><i class="bi bi-save"></i> Crear Cuenta</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    function mostrarErrorNumeros(input) {
+        if (/[^0-9]/.test(input.value)) {
+            input.value = input.value.replace(/[^0-9]/g, '');
+            input.classList.add('is-invalid');
+            setTimeout(() => {
+                input.classList.remove('is-invalid');
+            }, 2500);
+        }
+    }
+</script>
 {% endblock %}

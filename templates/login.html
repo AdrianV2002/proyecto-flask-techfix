@@ -1,5 +1,4 @@
 {% extends "base.html" %}
-
 {% block title %}Iniciar Sesión - TechFix{% endblock %}
 
 {% block content %}
@@ -25,7 +24,10 @@
                     <label class="form-label text-light fw-bold" style="opacity: 0.9;">Contraseña</label>
                     <div class="input-group">
                         <span class="input-group-text bg-dark border-secondary text-light"><i class="bi bi-lock"></i></span>
-                        <input type="password" name="password" class="form-control bg-dark text-light border-secondary" placeholder="********" required>
+                        <input type="password" id="loginPassword" name="password" class="form-control bg-dark text-light border-secondary border-end-0" placeholder="********" required>
+                        <button class="btn bg-dark border-secondary border-start-0 text-light" type="button" onclick="togglePassword('loginPassword', this)">
+                            <i class="bi bi-eye"></i>
+                        </button>
                     </div>
                 </div>
                 
@@ -40,4 +42,18 @@
         </div>
     </div>
 </div>
+
+<script>
+    function togglePassword(inputId, btn) {
+        var input = document.getElementById(inputId);
+        var icon = btn.querySelector('i');
+        if (input.type === "password") {
+            input.type = "text";
+            icon.classList.replace('bi-eye', 'bi-eye-slash');
+        } else {
+            input.type = "password";
+            icon.classList.replace('bi-eye-slash', 'bi-eye');
+        }
+    }
+</script>
 {% endblock %}

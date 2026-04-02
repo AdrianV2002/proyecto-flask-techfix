@@ -22,7 +22,10 @@ def inicializar_base_datos():
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS usuarios (
                     id_usuario INT AUTO_INCREMENT PRIMARY KEY,
+                    cedula VARCHAR(20) NOT NULL,
                     nombre VARCHAR(100) NOT NULL,
+                    telefono VARCHAR(20) NOT NULL,
+                    direccion TEXT NOT NULL,
                     mail VARCHAR(100) NOT NULL,
                     password VARCHAR(255) NOT NULL,
                     rol VARCHAR(20) DEFAULT 'usuario'

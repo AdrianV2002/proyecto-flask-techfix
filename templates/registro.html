@@ -1,39 +1,67 @@
 {% extends "base.html" %}
-
 {% block title %}Registro - TechFix{% endblock %}
 
 {% block content %}
 <div class="row justify-content-center mt-5">
-    <div class="col-md-5">
+    <div class="col-md-8">
         <div class="panel p-5 rounded" style="background-color: #1e1e1e; border: 1px solid #333;">
             <div class="text-center mb-4">
                 <i class="bi bi-person-plus" style="font-size: 3.5rem; color: var(--color-marca);"></i>
                 <h3 class="fw-bold text-light mt-2">Crear Cuenta</h3>
-                <p class="text-light" style="opacity: 0.7; font-size: 0.9rem;">Únete a TechFix para solicitar soporte</p>
+                <p class="text-light" style="opacity: 0.7; font-size: 0.9rem;">Únete a TechFix para solicitar soporte y comprar repuestos</p>
             </div>
             
             <form action="{{ url_for('registro') }}" method="POST">
-                <div class="mb-3">
-                    <label class="form-label text-light fw-bold" style="opacity: 0.9;">Nombre Completo</label>
-                    <div class="input-group">
-                        <span class="input-group-text bg-dark border-secondary text-light"><i class="bi bi-person"></i></span>
-                        <input type="text" name="nombre" class="form-control bg-dark text-light border-secondary" placeholder="Ej: Juan Pérez" required>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label text-light fw-bold" style="opacity: 0.9;">Cédula / DNI</label>
+                        <div class="input-group has-validation">
+                            <span class="input-group-text bg-dark border-secondary text-light"><i class="bi bi-card-text"></i></span>
+                            <input type="text" name="cedula" class="form-control bg-dark text-light border-secondary" placeholder="Ej: 17xxxxxx" pattern="[0-9]+" maxlength="10" oninput="mostrarErrorNumeros(this);" required>
+                            <div class="invalid-feedback fw-bold"><i class="bi bi-exclamation-triangle"></i> Solo se permiten números.</div>
+                        </div>
                     </div>
-                </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label text-light fw-bold" style="opacity: 0.9;">Nombre Completo</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-dark border-secondary text-light"><i class="bi bi-person"></i></span>
+                            <input type="text" name="nombre" class="form-control bg-dark text-light border-secondary" placeholder="Ej: Juan Pérez" required>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label text-light fw-bold" style="opacity: 0.9;">Teléfono</label>
+                        <div class="input-group has-validation">
+                            <span class="input-group-text bg-dark border-secondary text-light"><i class="bi bi-telephone"></i></span>
+                            <input type="text" name="telefono" class="form-control bg-dark text-light border-secondary" placeholder="Ej: 099xxxxxxx" pattern="[0-9]+" maxlength="15" oninput="mostrarErrorNumeros(this);" required>
+                            <div class="invalid-feedback fw-bold"><i class="bi bi-exclamation-triangle"></i> Solo se permiten números.</div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label text-light fw-bold" style="opacity: 0.9;">Correo Electrónico</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-dark border-secondary text-light"><i class="bi bi-envelope"></i></span>
+                            <input type="email" name="mail" class="form-control bg-dark text-light border-secondary" placeholder="tu@correo.com" required>
+                        </div>
+                    </div>
 
-                <div class="mb-3">
-                    <label class="form-label text-light fw-bold" style="opacity: 0.9;">Correo Electrónico</label>
-                    <div class="input-group">
-                        <span class="input-group-text bg-dark border-secondary text-light"><i class="bi bi-envelope"></i></span>
-                        <input type="email" name="mail" class="form-control bg-dark text-light border-secondary" placeholder="tu@correo.com" required>
+                    <div class="col-12 mb-3">
+                        <label class="form-label text-light fw-bold" style="opacity: 0.9;">Dirección Domiciliaria</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-dark border-secondary text-light"><i class="bi bi-geo-alt"></i></span>
+                            <input type="text" name="direccion" class="form-control bg-dark text-light border-secondary" placeholder="Calle principal y secundaria" required>
+                        </div>
                     </div>
-                </div>
-                
-                <div class="mb-4">
-                    <label class="form-label text-light fw-bold" style="opacity: 0.9;">Contraseña</label>
-                    <div class="input-group">
-                        <span class="input-group-text bg-dark border-secondary text-light"><i class="bi bi-lock"></i></span>
-                        <input type="password" name="password" class="form-control bg-dark text-light border-secondary" placeholder="Crea una contraseña segura" required>
+
+                    <div class="col-12 mb-4">
+                        <label class="form-label text-light fw-bold" style="opacity: 0.9;">Contraseña</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-dark border-secondary text-light"><i class="bi bi-lock"></i></span>
+                            <input type="password" id="registroPassword" name="password" class="form-control bg-dark text-light border-secondary border-end-0" placeholder="Crea una contraseña segura" required>
+                            <button class="btn bg-dark border-secondary border-start-0 text-light" type="button" onclick="togglePassword('registroPassword', this)">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                        </div>
                     </div>
                 </div>
                 
@@ -48,4 +76,25 @@
         </div>
     </div>
 </div>
-{% endblock %}      
+
+<script>
+    function mostrarErrorNumeros(input) {
+        if (/[^0-9]/.test(input.value)) {
+            input.value = input.value.replace(/[^0-9]/g, '');
+            input.classList.add('is-invalid');
+            setTimeout(() => { input.classList.remove('is-invalid'); }, 2500);
+        }
+    }
+    function togglePassword(inputId, btn) {
+        var input = document.getElementById(inputId);
+        var icon = btn.querySelector('i');
+        if (input.type === "password") {
+            input.type = "text";
+            icon.classList.replace('bi-eye', 'bi-eye-slash');
+        } else {
+            input.type = "password";
+            icon.classList.replace('bi-eye-slash', 'bi-eye');
+        }
+    }
+</script>
+{% endblock %}

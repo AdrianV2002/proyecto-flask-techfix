@@ -19,7 +19,6 @@ login_manager.init_app(app)
 login_manager.login_view = 'login'
 login_manager.login_message = 'Inicia sesión para interactuar.'
 
-# Inicializar MySQL
 inicializar_base_datos()
 
 def crear_admin_por_defecto():
@@ -29,7 +28,7 @@ def crear_admin_por_defecto():
         cursor.execute("SELECT * FROM usuarios WHERE mail = 'admin@admin.com'")
         if not cursor.fetchone():
             password_hash = generate_password_hash('admin')
-            sql = "INSERT INTO usuarios (nombre, mail, password, rol) VALUES ('Administrador General', 'admin@admin.com', %s, 'admin')"
+            sql = "INSERT INTO usuarios (cedula, nombre, telefono, direccion, mail, password, rol) VALUES ('0000000000', 'Administrador General', '0000000000', 'Oficina Matriz', 'admin@admin.com', %s, 'admin')"
             cursor.execute(sql, (password_hash,))
             conn.commit()
         cursor.close()
@@ -59,22 +58,28 @@ def load_user(user_id):
         cursor.close()
         conn.close()
         if data:
-            return Usuario(data['id_usuario'], data['nombre'], data['mail'], data['password'], data['rol'])
+            return Usuario(data['id_usuario'], data['cedula'], data['nombre'], data['telefono'], data['direccion'], data['mail'], data['password'], data['rol'])
     return None
 
 @app.route('/registro', methods=['GET', 'POST'])
 def registro():
     if request.method == 'POST':
+        cedula = request.form.get('cedula')
         nombre = request.form.get('nombre')
+        telefono = request.form.get('telefono')
+        direccion = request.form.get('direccion')
         mail = request.form.get('mail')
         password_hash = generate_password_hash(request.form.get('password'))
+        
         conn = obtener_conexion()
         if conn:
             cursor = conn.cursor()
-            cursor.execute("INSERT INTO usuarios (nombre, mail, password, rol) VALUES (%s, %s, %s, 'usuario')", (nombre, mail, password_hash))
+            cursor.execute("INSERT INTO usuarios (cedula, nombre, telefono, direccion, mail, password, rol) VALUES (%s, %s, %s, %s, %s, %s, 'usuario')", 
+                           (cedula, nombre, telefono, direccion, mail, password_hash))
             conn.commit()
             cursor.close()
             conn.close()
+            flash("Cuenta creada exitosamente. Ahora puedes iniciar sesión.", "success")
             return redirect(url_for('login'))
     return render_template('registro.html')
 
@@ -84,18 +89,27 @@ def login():
         mail = request.form.get('mail')
         password = request.form.get('password')
         conn = obtener_conexion()
+        
         if conn:
             cursor = conn.cursor(dictionary=True)
             cursor.execute("SELECT * FROM usuarios WHERE mail = %s", (mail,))
             data = cursor.fetchone()
             cursor.close()
             conn.close()
-            if data and check_password_hash(data['password'], password):
-                user = Usuario(data['id_usuario'], data['nombre'], data['mail'], data['password'], data['rol'])
-                login_user(user)
-                return redirect(url_for('home'))
+            
+            if data:
+                if check_password_hash(data['password'], password):
+                    user = Usuario(data['id_usuario'], data['cedula'], data['nombre'], data['telefono'], data['direccion'], data['mail'], data['password'], data['rol'])
+                    login_user(user)
+                    flash(f"¡Bienvenido de nuevo, {data['nombre']}!", "success")
+                    return redirect(url_for('home'))
+                else:
+                    flash("La contraseña es incorrecta. Inténtalo de nuevo.", "danger")
             else:
-                flash("Credenciales incorrectas", "danger")
+                flash("Ese correo no está registrado en nuestro sistema.", "warning")
+        else:
+            flash("Error de conexión con la base de datos.", "danger")
+            
     return render_template('login.html')
 
 @app.route('/logout')
@@ -139,6 +153,25 @@ def soporte():
             flash("Ticket generado con éxito.", "success")
             return redirect(url_for('mis_tickets'))
     return render_template('soporte.html', servicio_pre=servicio_pre)
+
+@app.route('/solicitar_repuesto/<int:id_prod>')
+@login_required
+def solicitar_repuesto(id_prod):
+    conn = obtener_conexion()
+    if conn:
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT nombre FROM productos WHERE id = %s", (id_prod,))
+        prod = cursor.fetchone()
+        if prod:
+            equipo = f"Compra de Repuesto: {prod['nombre']}"
+            descripcion = "El cliente ha solicitado la compra de este repuesto desde la tienda. Contactar para detalles de entrega."
+            cursor.execute("INSERT INTO tickets (id_usuario, equipo, descripcion, estado) VALUES (%s, %s, %s, 'Pendiente')",
+                           (current_user.id, equipo, descripcion))
+            conn.commit()
+            flash(f"Se ha creado un ticket automático para tu compra de: {prod['nombre']}", "success")
+        cursor.close()
+        conn.close()
+    return redirect(url_for('mis_tickets'))
 
 @app.route('/mis_tickets')
 @login_required
@@ -193,9 +226,61 @@ def lista_usuarios():
     cursor = conn.cursor(dictionary=True)
     cursor.execute("SELECT u.*, (SELECT COUNT(*) FROM tickets t WHERE t.id_usuario = u.id_usuario) as total_tickets FROM usuarios u")
     usuarios_db = cursor.fetchall()
+    cursor.execute("SELECT * FROM productos WHERE cantidad > 0")
+    productos_db = cursor.fetchall()
     cursor.close()
     conn.close()
-    return render_template('usuarios.html', usuarios=usuarios_db)
+    return render_template('usuarios.html', usuarios=usuarios_db, productos=productos_db)
+
+@app.route('/admin_crear_usuario', methods=['POST'])
+@login_required
+def admin_crear_usuario():
+    if current_user.rol != 'admin': abort(403)
+    cedula = request.form.get('cedula')
+    nombre = request.form.get('nombre')
+    telefono = request.form.get('telefono')
+    direccion = request.form.get('direccion')
+    mail = request.form.get('mail')
+    password_hash = generate_password_hash(request.form.get('password'))
+    rol = request.form.get('rol')
+    
+    conn = obtener_conexion()
+    if conn:
+        cursor = conn.cursor()
+        cursor.execute("INSERT INTO usuarios (cedula, nombre, telefono, direccion, mail, password, rol) VALUES (%s, %s, %s, %s, %s, %s, %s)", 
+                       (cedula, nombre, telefono, direccion, mail, password_hash, rol))
+        conn.commit()
+        cursor.close()
+        conn.close()
+        flash("Usuario creado exitosamente desde el panel.", "success")
+    return redirect(url_for('lista_usuarios'))
+
+# ¡AQUÍ ESTÁ LA FUNCIÓN QUE SE HABÍA BORRADO!
+@app.route('/asignar_producto', methods=['POST'])
+@login_required
+def asignar_producto():
+    if current_user.rol != 'admin': abort(403)
+    id_usuario = request.form.get('id_usuario')
+    id_producto = request.form.get('id_producto')
+    conn = obtener_conexion()
+    if conn:
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT * FROM productos WHERE id = %s", (id_producto,))
+        prod = cursor.fetchone()
+        if prod and prod['cantidad'] > 0:
+            cursor.execute("UPDATE productos SET cantidad = cantidad - 1 WHERE id = %s", (id_producto,))
+            equipo = f"Entrega de Repuesto: {prod['nombre']}"
+            descripcion = "El administrador te ha asignado y entregado este repuesto directamente. El inventario se ha actualizado."
+            cursor.execute("INSERT INTO tickets (id_usuario, equipo, descripcion, estado) VALUES (%s, %s, %s, 'Resuelto')", 
+                           (id_usuario, equipo, descripcion))
+            conn.commit()
+            actualizar_archivos_respaldo()
+            flash(f"Repuesto '{prod['nombre']}' asignado al usuario exitosamente. Stock actualizado.", "success")
+        else:
+            flash("Error: No hay stock suficiente de ese producto.", "danger")
+        cursor.close()
+        conn.close()
+    return redirect(url_for('lista_usuarios'))
 
 @app.route('/cambiar_rol', methods=['POST'])
 @login_required
