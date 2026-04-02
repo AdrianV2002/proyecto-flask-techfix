@@ -24,7 +24,7 @@
                     <li class="nav-item"><a class="nav-link" href="{{ url_for('servicios') }}">Servicios</a></li>
                     
                     {% if current_user.is_authenticated %}
-                        <li class="nav-item"><a class="nav-link text-light" href="{{ url_for('mis_tickets') }}"><i class="bi bi-ticket-detailed"></i> Mis Casos</a></li>
+                        <li class="nav-item"><a class="nav-link text-light" href="{{ url_for('mis_tickets') }}"><i class="bi bi-ticket-detailed"></i> Mis Tickets</a></li>
                         
                         {% if current_user.rol == 'admin' %}
                             <li class="nav-item dropdown">

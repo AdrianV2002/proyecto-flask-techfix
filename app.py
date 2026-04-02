@@ -255,7 +255,6 @@ def admin_crear_usuario():
         flash("Usuario creado exitosamente desde el panel.", "success")
     return redirect(url_for('lista_usuarios'))
 
-# ¡AQUÍ ESTÁ LA FUNCIÓN QUE SE HABÍA BORRADO!
 @app.route('/asignar_producto', methods=['POST'])
 @login_required
 def asignar_producto():
